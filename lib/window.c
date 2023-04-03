@@ -1,4 +1,8 @@
+// clang-format off
+#include <GL/glew.h>
+// clang-format on
 #include "window.h"
+#include "GLFW/glfw3.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,7 +13,7 @@ Window* window_init(uint32_t width, uint32_t height) {
   }
 
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-  glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+  // glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
   GLFWwindow* window =
       glfwCreateWindow(width, height, "Doom Engine", NULL, NULL);
   if (!window) {
@@ -18,6 +22,11 @@ Window* window_init(uint32_t width, uint32_t height) {
   }
 
   glfwMakeContextCurrent(window);
+
+  if (glewInit() == GLEW_OK) {
+    printf("GL version: %s\n", glGetString(GL_VERSION));
+  }
+
   Window* main_window = (Window*)malloc(sizeof(Window));
   main_window->width = width;
   main_window->height = height;
@@ -27,6 +36,11 @@ Window* window_init(uint32_t width, uint32_t height) {
 
 bool window_is_running(Window* window) {
   return !glfwWindowShouldClose(window->handle);
+}
+
+void window_get_size(Window* window) {
+  glfwGetWindowSize(window->handle, (int*)&window->width,
+                    (int*)&window->height);
 }
 
 void window_swap_buffers(Window* window) {
