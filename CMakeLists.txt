@@ -5,11 +5,13 @@ project(doom VERSION 1.0)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 17)
 set(OpenGL_GL_PREFERENCE GLVND)
+set(CMAKE_C_FLAGS "-Wall -Werror")
 
 set(SOURCES
     lib/main.c
     lib/window.c
-    lib/image.c)
+    lib/image.c
+    lib/wad.c)
 
 add_executable(doom ${SOURCES})
 include_directories(include)
