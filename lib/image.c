@@ -5,6 +5,7 @@ Image* image_init(uint32_t width, uint32_t height) {
   Image* image = (Image*)malloc(sizeof(Image));
   image->width = width;
   image->height = height;
+  image->upscale = 4;
   image->data = (uint32_t*)malloc(sizeof(uint32_t) * width * height);
 
   glGenTextures(1, &image->id);
@@ -28,19 +29,22 @@ void image_set_data(Image* image) {
                GL_RGBA, GL_UNSIGNED_BYTE, image->data);
 
   glBindFramebuffer(GL_READ_FRAMEBUFFER, image->framebuffer);
-  glBlitFramebuffer(0, 0, image->width, image->height, 0, 0, image->width,
-                    image->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+  glBlitFramebuffer(
+      0, 0, image->width, image->height, 0, 0, image->width * image->upscale,
+      image->height * image->upscale, GL_COLOR_BUFFER_BIT, GL_NEAREST);
   glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 }
 
 void image_resize(Image* image, uint32_t width, uint32_t height) {
-  if (image->width == width && image->height == height) {
+  if (image->width * image->upscale == width &&
+      image->height * image->upscale == height) {
     return;
   }
-  image->width = width;
-  image->height = height;
-  image->data =
-      (uint32_t*)realloc(image->data, sizeof(uint32_t) * width * height);
+
+  image->width = width / image->upscale;
+  image->height = height / image->upscale;
+  image->data = (uint32_t*)realloc(
+      image->data, sizeof(uint32_t) * image->width * image->height);
 }
 
 void image_destroy(Image* image) {

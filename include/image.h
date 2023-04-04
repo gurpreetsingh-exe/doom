@@ -8,6 +8,7 @@
 
 typedef struct {
   uint32_t id;
+  uint32_t upscale;
   uint32_t framebuffer;
   uint32_t* data;
   uint32_t width, height;
