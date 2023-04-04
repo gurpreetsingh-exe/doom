@@ -1,5 +1,7 @@
 #include "image.h"
+#include "wad.h"
 #include "window.h"
+#include <stdio.h>
 
 uint32_t convert_to_rgba(float x, float y, float z, float w) {
   uint8_t r = (uint8_t)(x * 255.0f);
@@ -12,8 +14,11 @@ uint32_t convert_to_rgba(float x, float y, float z, float w) {
 }
 
 int main() {
-  Window* window = window_init(600, 600);
-  Image* image = image_init(600, 600);
+  Window* window = window_init(640, 400);
+  Image* image = image_init(640, 400);
+  Wad* wad = load_wad("../assets/DOOM.WAD");
+  DoomMap* map = load_map(wad, "E1M1");
+  (void)map;
 
   while (window_is_running(window)) {
     window_swap_buffers(window);
@@ -31,6 +36,9 @@ int main() {
 
     image_set_data(image);
   }
+
+  map_destroy(map);
+  wad_destroy(wad);
   image_destroy(image);
   window_destroy(window);
 }
