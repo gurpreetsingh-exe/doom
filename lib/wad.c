@@ -16,6 +16,8 @@ Wad* load_wad(const char* path) {
 
   char* data = malloc(size);
   fread(data, 1, size, file);
+  fclose(file);
+
   memcpy(&wad->wadinfo, data, 12);
   if (memcmp("IWAD", wad->wadinfo.identification, 4)) {
     printf("invalid wad format identifier\n");
@@ -27,16 +29,20 @@ Wad* load_wad(const char* path) {
          sizeof(Lump) * wad->wadinfo.numlumps);
 
   wad->src = data;
-  fclose(file);
   return wad;
 }
 
 DoomMap* load_map(Wad* wad, char* name) {
   size_t index = wad_get_map_index(wad, name);
-  Lump lump = WAD_VERTEX(index);
   DoomMap* map = (DoomMap*)malloc(sizeof(DoomMap));
+  Lump lump = WAD_VERTEX(index);
   map->lump_index = index;
   READ_LUMP(Vec2, map->vertices, lump);
+  map->numvertices = lump.size / sizeof(Vec2);
+
+  lump = WAD_LINEDEF(index);
+  READ_LUMP(LineDef, map->linedefs, lump);
+  map->numlinedefs = lump.size / sizeof(LineDef);
   return map;
 }
 
@@ -47,4 +53,16 @@ size_t wad_get_map_index(Wad* wad, const char* map_name) {
     }
   }
   return -1;
+}
+
+void wad_destroy(Wad* wad) {
+  free(wad->src);
+  free(wad->lumps);
+  free(wad);
+}
+
+void map_destroy(DoomMap* map) {
+  free(map->vertices);
+  free(map->linedefs);
+  free(map);
 }
