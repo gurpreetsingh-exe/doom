@@ -12,7 +12,9 @@ set(SOURCES
     lib/window.c
     lib/image.c
     lib/map.c
-    lib/wad.c)
+    lib/renderer.c
+    lib/wad.c
+    lib/utils.c)
 
 add_executable(doom ${SOURCES})
 include_directories(include)

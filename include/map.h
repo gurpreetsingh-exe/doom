@@ -22,6 +22,7 @@ typedef struct {
 } DoomMap;
 
 DoomMap* load_map(Wad* wad, char* name);
+void remap_vertices(DoomMap* map, uint32_t width, uint32_t height);
 void map_destroy(DoomMap* map);
 
 #endif // !MAP_H

@@ -14,6 +14,7 @@ Window* window_init(uint32_t, uint32_t);
 bool window_is_running(Window*);
 void window_swap_buffers(Window*);
 void window_get_size(Window*);
+// double window_get_time() { return glfwGetTime(); }
 void window_destroy(Window*);
 
 #endif // !WINDOW_H

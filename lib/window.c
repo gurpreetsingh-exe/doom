@@ -43,9 +43,23 @@ void window_get_size(Window* window) {
                     (int*)&window->height);
 }
 
+static double last_time = 0;
+static int nframe = 0;
+#define TIME_DIFF 0.5
+
 void window_swap_buffers(Window* window) {
   glfwPollEvents();
   glfwSwapBuffers(window->handle);
+  double time = glfwGetTime();
+  double ms = time - last_time;
+  nframe++;
+  if (ms >= TIME_DIFF) {
+    char title[32] = {0};
+    snprintf(title, 32, "Doom Engine %3.2f", (float)nframe / ms);
+    glfwSetWindowTitle(window->handle, title);
+    nframe = 0;
+    last_time += TIME_DIFF;
+  }
 }
 
 void window_destroy(Window* window) {
