@@ -1,5 +1,10 @@
 #include "map.h"
+#include "utils.h"
+#include <stdio.h>
 #include <string.h>
+
+#define MAX(a, b) ((a > b) ? a : b)
+#define MIN(a, b) ((a < b) ? a : b)
 
 DoomMap* load_map(Wad* wad, char* name) {
   size_t index = wad_get_map_index(wad, name);
@@ -17,7 +22,21 @@ DoomMap* load_map(Wad* wad, char* name) {
   lump = WAD_VERTEX(index);
   READ_LUMP(Vec2, map->vertices, lump);
   map->numvertices = lump.size / sizeof(Vec2);
+  Vec2 max = {.x = -10000, .y = -10000};
+  Vec2 min = {0};
+  for (size_t i = 0; i < map->numvertices; ++i) {
+    Vec2 v = map->vertices[i];
+    max.x = MAX(v.x, max.x);
+    max.y = MAX(v.y, max.y);
 
+    min.x = MIN(v.x, min.x);
+    min.y = MIN(v.y, min.y);
+  }
+  for (size_t i = 0; i < map->numvertices; ++i) {
+    Vec2* v = &map->vertices[i];
+    v->x = MAP_RANGE((float)v->x, min.x, max.x, 0, 319);
+    v->y = MAP_RANGE((float)v->y, min.y, max.y, 0, 199);
+  }
   lump = WAD_SEG(index);
   READ_LUMP(Segment, map->segments, lump);
   map->numsegments = lump.size / sizeof(Segment);

@@ -6,7 +6,7 @@ Image* image_init(uint32_t width, uint32_t height) {
   image->width = width;
   image->height = height;
   image->upscale = 2;
-  image->data = (uint32_t*)malloc(sizeof(uint32_t) * width * height);
+  image->data = (uint32_t*)calloc(sizeof(uint32_t), width * height);
 
   glGenTextures(1, &image->id);
   glBindTexture(GL_TEXTURE_2D, image->id);
