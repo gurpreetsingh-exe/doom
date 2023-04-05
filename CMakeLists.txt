@@ -11,6 +11,7 @@ set(SOURCES
     lib/main.c
     lib/window.c
     lib/image.c
+    lib/map.c
     lib/wad.c)
 
 add_executable(doom ${SOURCES})

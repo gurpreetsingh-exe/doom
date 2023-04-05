@@ -15,6 +15,8 @@
 #define REJECT 9
 #define BLOCKMAP 10
 
+#define SSECTOR_IDENTIFIER 0x8000
+
 #define WAD_THING(index) wad->lumps[index + THINGS]
 #define WAD_LINEDEF(index) wad->lumps[index + LINEDEFS]
 #define WAD_SIDEDEF(index) wad->lumps[index + SIDEDEFS]
@@ -102,38 +104,8 @@ typedef struct {
   Lump* lumps;
 } Wad;
 
-// #define THINGS 1
-// #define LINEDEFS 2
-// #define SIDEDEFS 3
-// #define VERTEX 4
-// #define SEGS 5
-// #define SSECTORS 6
-// #define NODES 7
-// #define SECTORS 8
-// #define REJECT 9
-// #define BLOCKMAP 10
-
-typedef struct {
-  char* name;
-  uint32_t lump_index;
-  Thing* things;
-  uint32_t numthings;
-  LineDef* linedefs;
-  uint32_t numlinedefs;
-  Vec2* vertices;
-  uint32_t numvertices;
-  Segment* segments;
-  uint32_t numsegments;
-  SubSector* subsectors;
-  uint32_t numsubsectors;
-  Node* nodes;
-  uint32_t numnodes;
-} DoomMap;
-
 Wad* load_wad(const char* path);
-DoomMap* load_map(Wad* wad, char* name);
 size_t wad_get_map_index(Wad* wad, const char* map_name);
 void wad_destroy(Wad* wad);
-void map_destroy(DoomMap* map);
 
 #endif // !WAD_H
