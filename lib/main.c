@@ -1,47 +1,39 @@
 #include "config.h"
-#include "image.h"
-#include "map.h"
-#include "player.h"
-#include "renderer.h"
-#include "utils.h"
-#include "wad.h"
+#include "engine.h"
 #include "window.h"
 #include <stdio.h>
 
-int main() {
-  Window* window = window_init(WIDTH, HEIGHT);
-  Image* image = image_init(WIDTH / 2, HEIGHT / 2);
-  Wad* wad = load_wad("../assets/DOOM.WAD");
-  DoomMap* map = load_map(wad, "E1M1");
-  Renderer* renderer = renderer_init(image);
-  Player* player = player_init(map->things[0]);
+Window* window;
 
-  while (window_is_running(window)) {
-    window_swap_buffers(window);
-    window_get_size(window);
-    image_resize(image, window->width, window->height);
+void draw(Renderer* renderer, Player* player, DoomMap* map) {
+  uint32_t width = window->width / 2;
+  uint32_t height = window->height / 2;
 
-    renderer_clear(renderer);
-    for (size_t i = 0; i < map->numlinedefs; ++i) {
-      LineDef linedef = map->linedefs[i];
-      Vec2 v1 = map->vertices[linedef.start_vertex];
-      Vec2 v2 = map->vertices[linedef.end_vertex];
-      v1 = vec2_remap(v1, map->min_pos, map->max_pos, VEC2_ZERO,
-                      vec2(image->width - 1, image->height - 1));
-      v2 = vec2_remap(v2, map->min_pos, map->max_pos, VEC2_ZERO,
-                      vec2(image->width - 1, image->height - 1));
-      renderer_draw_line(renderer, v1, v2, 0x00ffffff);
-    }
-    Vec2 pos = vec2_remap(player->pos, map->min_pos, map->max_pos, VEC2_ZERO,
-                          vec2(image->width - 1, image->height - 1));
-    image->data[pos.x + pos.y * image->width] = 0xff0000ff;
-
-    image_set_data(image);
+  renderer_clear(renderer);
+  for (size_t i = 0; i < map->numlinedefs; ++i) {
+    LineDef linedef = map->linedefs[i];
+    Vec2 v1 = map->vertices[linedef.start_vertex];
+    Vec2 v2 = map->vertices[linedef.end_vertex];
+    v1 = vec2_remap(v1, map->min_pos, map->max_pos, VEC2_ZERO,
+                    vec2(width - 1, height - 1));
+    v2 = vec2_remap(v2, map->min_pos, map->max_pos, VEC2_ZERO,
+                    vec2(width - 1, height - 1));
+    renderer_draw_line(renderer, v1, v2, 0x00ffffff);
   }
 
-  player_destroy(player);
-  map_destroy(map);
-  wad_destroy(wad);
-  renderer_destroy(renderer);
+  Vec2 pos = vec2_remap(player->pos, map->min_pos, map->max_pos, VEC2_ZERO,
+                        vec2(width - 1, height - 1));
+  renderer_draw_point(renderer, pos, 0xff0000ff);
+}
+
+int main() {
+  window = window_init(WIDTH, HEIGHT);
+  Engine* engine = engine_init("../assets/DOOM.WAD", WIDTH / 2, HEIGHT / 2);
+
+  while (window_is_running(window)) {
+    engine_tick(engine, draw);
+  }
+
+  engine_destroy(engine);
   window_destroy(window);
 }

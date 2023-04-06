@@ -34,20 +34,12 @@ Window* window_init(uint32_t width, uint32_t height) {
   return main_window;
 }
 
-bool window_is_running(Window* window) {
-  return !glfwWindowShouldClose(window->handle);
-}
-
-void window_get_size(Window* window) {
-  glfwGetWindowSize(window->handle, (int*)&window->width,
-                    (int*)&window->height);
-}
-
 static double last_time = 0;
 static int nframe = 0;
 #define TIME_DIFF 0.5
 
-void window_swap_buffers(Window* window) {
+bool window_is_running(Window* window) {
+  bool is_running = !glfwWindowShouldClose(window->handle);
   glfwPollEvents();
   glfwSwapBuffers(window->handle);
   double time = glfwGetTime();
@@ -60,6 +52,12 @@ void window_swap_buffers(Window* window) {
     nframe = 0;
     last_time += TIME_DIFF;
   }
+  return is_running;
+}
+
+void window_get_size(Window* window) {
+  glfwGetWindowSize(window->handle, (int*)&window->width,
+                    (int*)&window->height);
 }
 
 void window_destroy(Window* window) {

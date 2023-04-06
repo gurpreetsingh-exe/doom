@@ -6,6 +6,8 @@
 // clang-format on
 #include <stdint.h>
 
+#define PIXEL(image, x, y) (image->data[x + y * image->width])
+
 typedef struct {
   uint32_t id;
   uint32_t upscale;

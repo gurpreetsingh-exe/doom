@@ -4,8 +4,6 @@
 #include "utils.h"
 #include <stdint.h>
 
-#define FORCE_INLINE __attribute__((always_inline)) inline
-
 #define VEC2_ZERO                                                              \
   (Vec2) { .x = 0, .y = 0 }
 

@@ -1,7 +1,6 @@
 #include "renderer.h"
 #include "image.h"
 #include <stdlib.h>
-#include <string.h>
 
 Renderer* renderer_init(Image* image) {
   Renderer* renderer = (Renderer*)malloc(sizeof(Renderer));
@@ -34,11 +33,6 @@ void renderer_draw_line(Renderer* renderer, Vec2 v0, Vec2 v1, uint32_t color) {
       y0 += sy;
     }
   }
-}
-
-void renderer_clear(Renderer* renderer) {
-  memset(renderer->image->data, 0,
-         renderer->image->width * renderer->image->height * sizeof(uint32_t));
 }
 
 void renderer_destroy(Renderer* renderer) {

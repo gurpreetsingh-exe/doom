@@ -10,11 +10,9 @@ typedef struct {
   uint32_t width, height;
 } Window;
 
-Window* window_init(uint32_t, uint32_t);
+Window* window_init(uint32_t width, uint32_t height);
 bool window_is_running(Window*);
-void window_swap_buffers(Window*);
 void window_get_size(Window*);
-// double window_get_time() { return glfwGetTime(); }
 void window_destroy(Window*);
 
 #endif // !WINDOW_H
