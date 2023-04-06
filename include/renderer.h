@@ -2,7 +2,7 @@
 #define RENDERER_H
 
 #include "image.h"
-#include "wad.h"
+#include "vec2.h"
 
 typedef struct {
   Image* image;

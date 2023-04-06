@@ -1,6 +1,7 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include "vec2.h"
 #include "wad.h"
 #include <stdint.h>
 
@@ -19,10 +20,13 @@ typedef struct {
   uint32_t numsubsectors;
   Node* nodes;
   uint32_t numnodes;
+
+  Vec2 min_pos;
+  Vec2 max_pos;
 } DoomMap;
 
 DoomMap* load_map(Wad* wad, char* name);
-void remap_vertices(DoomMap* map, uint32_t width, uint32_t height);
+void map_calc_bounds(DoomMap* map);
 void map_destroy(DoomMap* map);
 
 #endif // !MAP_H

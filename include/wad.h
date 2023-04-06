@@ -41,10 +41,6 @@ typedef struct {
 } Thing;
 
 typedef struct {
-  int16_t x, y;
-} Vec2;
-
-typedef struct {
   int16_t start_vertex;
   int16_t end_vertex;
   int16_t flags;

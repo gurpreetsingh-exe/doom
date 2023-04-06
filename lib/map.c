@@ -33,24 +33,18 @@ DoomMap* load_map(Wad* wad, char* name) {
   READ_LUMP(Node, map->nodes, lump);
   map->numnodes = lump.size / sizeof(Node);
 
+  map_calc_bounds(map);
+
   return map;
 }
 
-void remap_vertices(DoomMap* map, uint32_t width, uint32_t height) {
-  Vec2 max = {.x = -10000, .y = -10000};
-  Vec2 min = {0};
+void map_calc_bounds(DoomMap* map) {
+  map->max_pos = (Vec2){.x = -10000, .y = -10000};
+  map->min_pos = (Vec2){0};
   for (size_t i = 0; i < map->numvertices; ++i) {
     Vec2 v = map->vertices[i];
-    max.x = MAX(v.x, max.x);
-    max.y = MAX(v.y, max.y);
-
-    min.x = MIN(v.x, min.x);
-    min.y = MIN(v.y, min.y);
-  }
-  for (size_t i = 0; i < map->numvertices; ++i) {
-    Vec2* v = &map->vertices[i];
-    v->x = MAP_RANGE((float)v->x, min.x, max.x, 0, width - 1);
-    v->y = MAP_RANGE((float)v->y, min.y, max.y, 0, height - 1);
+    map->max_pos = vec2_max(v, map->max_pos);
+    map->min_pos = vec2_min(v, map->min_pos);
   }
 }
 
