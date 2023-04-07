@@ -9,7 +9,14 @@
 #include <stdint.h>
 
 typedef struct {
+  bool pressed[GLFW_KEY_LAST + 1];
+  bool disable_cursor;
+  double delta_time;
+} Event;
+
+typedef struct {
   GLFWwindow* handle;
+  Event* event;
   uint32_t width, height;
 } Window;
 

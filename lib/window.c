@@ -3,35 +3,50 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static void key_callback(GLFWwindow* window, int key, int scancode, int action,
+                         int mods) {
+  Event* event = (Event*)(glfwGetWindowUserPointer(window));
+  if (action == GLFW_PRESS) {
+    if (key == GLFW_KEY_ESCAPE) {
+      event->disable_cursor = !event->disable_cursor;
+    }
+    event->pressed[key] = true;
+  } else if (action == GLFW_RELEASE) {
+    event->pressed[key] = false;
+  }
+}
+
 Window* window_init(uint32_t width, uint32_t height) {
   if (!glfwInit()) {
     fprintf(stderr, "glfw initialization failed\n");
     exit(1);
   }
 
+  Window* window = (Window*)malloc(sizeof(Window));
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-  // glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-  GLFWwindow* window =
-      glfwCreateWindow(width, height, "Doom Engine", NULL, NULL);
+  window->handle = glfwCreateWindow(width, height, "Doom Engine", NULL, NULL);
+  window->width = width;
+  window->height = height;
+
   if (!window) {
     fprintf(stderr, "failed to create window\n");
     exit(1);
   }
 
-  glfwMakeContextCurrent(window);
+  glfwMakeContextCurrent(window->handle);
+  window->event = (Event*)calloc(1, sizeof(Event));
+  glfwSetWindowUserPointer(window->handle, window->event);
+  glfwSetKeyCallback(window->handle, key_callback);
 
   if (glewInit() == GLEW_OK) {
     printf("GL version: %s\n", glGetString(GL_VERSION));
   }
 
-  Window* main_window = (Window*)malloc(sizeof(Window));
-  main_window->width = width;
-  main_window->height = height;
-  main_window->handle = window;
-  return main_window;
+  return window;
 }
 
 static double last_time = 0;
+static double last_time2 = 0;
 static int nframe = 0;
 #define TIME_DIFF 0.5
 
@@ -41,6 +56,7 @@ bool window_is_running(Window* window) {
   glfwSwapBuffers(window->handle);
   double time = glfwGetTime();
   double ms = time - last_time;
+  window->event->delta_time = (time - last_time2) * 1000;
   nframe++;
   if (ms >= TIME_DIFF) {
     char title[32] = {0};
@@ -49,6 +65,7 @@ bool window_is_running(Window* window) {
     nframe = 0;
     last_time += TIME_DIFF;
   }
+  last_time2 = time;
   return is_running;
 }
 
@@ -60,5 +77,6 @@ void window_get_size(Window* window) {
 void window_destroy(Window* window) {
   glfwDestroyWindow(window->handle);
   glfwTerminate();
+  free(window->event);
   free(window);
 }

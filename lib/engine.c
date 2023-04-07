@@ -18,10 +18,12 @@ Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height) {
   return engine;
 }
 
-void engine_tick(Engine* engine, void (*draw)(MapRenderer*)) {
+void engine_tick(Engine* engine, void (*draw)(MapRenderer*),
+                 void (*update)(Player*, Event*)) {
   window_get_size(window);
   renderer_resize(engine->renderer, window->width, window->height);
   draw(engine->map_renderer);
+  update(engine->player, window->event);
   renderer_submit(engine->renderer);
 }
 

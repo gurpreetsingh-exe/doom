@@ -2,6 +2,7 @@
 #define VEC2_H
 
 #include "utils.h"
+#include <math.h>
 #include <stdint.h>
 
 #include "window.h"
@@ -42,6 +43,11 @@ FORCE_INLINE Vec2 vec2_remap(Vec2 v, Vec2 from_min, Vec2 from_max, Vec2 to_min,
 FORCE_INLINE Vec2 vec2_remap_window(Vec2 v, Vec2 min_pos, Vec2 max_pos) {
   return vec2_remap(v, min_pos, max_pos, VEC2_ZERO,
                     vec2(window->width / 2 - 1, window->height / 2 - 1));
+}
+
+FORCE_INLINE Vec2 rotate(Vec2 v, float angle) {
+  return vec2(v.x * cos(angle) - v.y * sin(angle),
+              v.x * sin(angle) + v.y * cos(angle));
 }
 
 #endif // !VEC2_H

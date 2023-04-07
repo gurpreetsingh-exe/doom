@@ -17,7 +17,8 @@ typedef struct {
 } Engine;
 
 Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height);
-void engine_tick(Engine* engine, void (*draw)(MapRenderer*));
+void engine_tick(Engine* engine, void (*draw)(MapRenderer*),
+                 void (*update)(Player*, Event*));
 void engine_destroy(Engine* engine);
 
 #endif // !ENGINE_H

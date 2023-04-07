@@ -4,7 +4,7 @@
 Player* player_init(Thing thing) {
   Player* player = (Player*)malloc(sizeof(Player));
   player->pos = (Vec2){.x = thing.x, .y = thing.y};
-  player->angle = thing.angle;
+  player->angle = RADIANS(thing.angle);
   return player;
 }
 
