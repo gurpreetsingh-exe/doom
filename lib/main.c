@@ -4,6 +4,12 @@
 #include <math.h>
 #include <stdio.h>
 
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include "cimgui.h"
+#define CIMGUI_USE_GLFW
+#define CIMGUI_USE_OPENGL3
+#include "cimgui_impl.h"
+
 Window* window;
 
 void draw(MapRenderer* map_renderer) {
@@ -56,13 +62,52 @@ void update(Player* player, Event* event) {
 
 int main() {
   window = window_init(WIDTH, HEIGHT);
+
+  igCreateContext(NULL);
+  ImGuiIO* io = igGetIO();
+  io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+#ifdef IMGUI_HAS_DOCK
+  io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+#endif
+  ImGui_ImplGlfw_InitForOpenGL(window->handle, true);
+  ImGui_ImplOpenGL3_Init("#version 450");
+  igStyleColorsDark(NULL);
+  ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
+
   Engine* engine = engine_init("../assets/DOOM.WAD", WIDTH / 2, HEIGHT / 2);
 
   while (window_is_running(window)) {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    igNewFrame();
+
     renderer_clear(engine->renderer);
     engine_tick(engine, draw, update);
+
+    igBegin("Debug", NULL, window_flags);
+    igEnd();
+    ImVec2 display_size;
+    display_size.x = WIDTH;
+    display_size.y = HEIGHT;
+    io->DisplaySize = display_size;
+    io->DeltaTime = 1.0f / 60.0f;
+
+    igRender();
+    ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
+#ifdef IMGUI_HAS_DOCK
+    if (io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+      GLFWwindow* backup_current_window = glfwGetCurrentContext();
+      igUpdatePlatformWindows();
+      igRenderPlatformWindowsDefault(NULL, NULL);
+      glfwMakeContextCurrent(backup_current_window);
+    }
+#endif
   }
 
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  igDestroyContext(NULL);
   engine_destroy(engine);
   window_destroy(window);
 }

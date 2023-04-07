@@ -7,6 +7,8 @@ set(CMAKE_C_STANDARD 17)
 set(OpenGL_GL_PREFERENCE GLVND)
 set(CMAKE_C_FLAGS "-Wall -Werror")
 
+set(IMGUI_DIR extern/cimgui/imgui)
+
 set(SOURCES
     lib/main.c
     lib/window.c
@@ -17,15 +19,19 @@ set(SOURCES
     lib/wad.c
     lib/player.c
     lib/engine.c
-    lib/utils.c)
+    lib/utils.c
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp)
 
 add_executable(doom ${SOURCES})
 include_directories(include)
+include_directories(extern/cimgui/generator/output/)
 
 add_subdirectory(extern/glfw)
 add_subdirectory(extern/glew/build/cmake)
+add_subdirectory(extern/cimgui)
 
-target_link_libraries(doom PUBLIC glfw glew)
+target_link_libraries(doom PUBLIC glfw glew cimgui)
 
 target_compile_options(doom PRIVATE -ggdb -fsanitize=address -fno-omit-frame-pointer)
 target_link_options(doom PRIVATE -fsanitize=address)
