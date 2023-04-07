@@ -12,10 +12,12 @@ typedef struct {
 
 Renderer* renderer_init(Image* image);
 void renderer_draw_line(Renderer* renderer, Vec2 v0, Vec2 v1, uint32_t color);
+void renderer_draw_rect(Renderer* renderer, Vec2 p0, Vec2 p1, uint32_t color);
 void renderer_destroy(Renderer* renderer);
 
-FORCE_INLINE void renderer_draw_point(Renderer* renderer, Vec2 p, uint32_t color) {
-    PIXEL(renderer->image, p.x, p.y) = color;
+FORCE_INLINE void renderer_draw_point(Renderer* renderer, Vec2 p,
+                                      uint32_t color) {
+  PIXEL(renderer->image, p.x, p.y) = color;
 }
 
 FORCE_INLINE void renderer_clear(Renderer* renderer) {

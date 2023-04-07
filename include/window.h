@@ -1,6 +1,9 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
+// clang-format off
+#include <GL/glew.h>
+// clang-format on
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 #include <stdint.h>

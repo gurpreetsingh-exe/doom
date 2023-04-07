@@ -1,5 +1,4 @@
 #include "wad.h"
-#include "utils.h"
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>

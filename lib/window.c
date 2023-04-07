@@ -1,6 +1,3 @@
-// clang-format off
-#include <GL/glew.h>
-// clang-format on
 #include "window.h"
 #include "GLFW/glfw3.h"
 #include <stdio.h>

@@ -10,6 +10,7 @@ typedef struct {
 } Player;
 
 Player* player_init(Thing thing);
+bool player_is_on_side(Player* player, Node* node);
 void player_destroy(Player* player);
 
 #endif // !PLAYER_H

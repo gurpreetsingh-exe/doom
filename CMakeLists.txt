@@ -13,6 +13,7 @@ set(SOURCES
     lib/image.c
     lib/map.c
     lib/renderer.c
+    lib/map_renderer.c
     lib/wad.c
     lib/player.c
     lib/engine.c

@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "image.h"
+#include "wad.h"
 #include <stdlib.h>
 
 Renderer* renderer_init(Image* image) {
@@ -33,6 +34,17 @@ void renderer_draw_line(Renderer* renderer, Vec2 v0, Vec2 v1, uint32_t color) {
       y0 += sy;
     }
   }
+}
+
+void renderer_draw_rect(Renderer* renderer, Vec2 p0, Vec2 p1, uint32_t color) {
+  Vec2 v0 = vec2(p0.x, p0.y);
+  Vec2 v1 = vec2(p0.x, p1.y);
+  Vec2 v2 = vec2(p1.x, p1.y);
+  Vec2 v3 = vec2(p1.x, p0.y);
+  renderer_draw_line(renderer, v0, v1, color);
+  renderer_draw_line(renderer, v1, v2, color);
+  renderer_draw_line(renderer, v2, v3, color);
+  renderer_draw_line(renderer, v3, v0, color);
 }
 
 void renderer_destroy(Renderer* renderer) {
