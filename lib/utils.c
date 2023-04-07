@@ -9,3 +9,11 @@ uint32_t convert_to_rgba(float x, float y, float z, float w) {
   uint32_t result = (a << 24) | (b << 16) | (g << 8) | r;
   return result;
 }
+
+int norm_angle(int angle) {
+  angle %= 360;
+  if (angle < 0) {
+    angle += 360;
+  }
+  return angle;
+}

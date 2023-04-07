@@ -1,4 +1,6 @@
 #include "map_renderer.h"
+#include "config.h"
+#include "player.h"
 #include <stdlib.h>
 
 MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer,
@@ -10,6 +12,82 @@ MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer,
   return map_renderer;
 }
 
+bool map_renderer_check_bbox(MapRenderer* map_renderer, BBox bbox) {
+  Vec2 a = vec2(bbox.left, bbox.bottom);
+  Vec2 b = vec2(bbox.left, bbox.top);
+  Vec2 c = vec2(bbox.right, bbox.top);
+  Vec2 d = vec2(bbox.right, bbox.bottom);
+  Player* player = map_renderer->player;
+  Vec2 p = player->pos;
+  Vec2 sides[4] = {0};
+  int numsides = 0;
+
+  if (p.x < bbox.left) {
+    if (p.y > bbox.top) {
+      sides[0] = b;
+      sides[1] = a;
+      sides[2] = c;
+      sides[3] = b;
+      numsides = 4;
+    } else if (p.y < bbox.bottom) {
+      sides[0] = b;
+      sides[1] = a;
+      sides[2] = a;
+      sides[3] = d;
+      numsides = 4;
+    } else {
+      sides[0] = b;
+      sides[1] = a;
+      numsides = 2;
+    }
+  } else if (p.x > bbox.right) {
+    if (p.y > bbox.top) {
+      sides[0] = c;
+      sides[1] = b;
+      sides[2] = d;
+      sides[3] = c;
+      numsides = 4;
+    } else if (p.y < bbox.bottom) {
+      sides[0] = a;
+      sides[1] = d;
+      sides[2] = d;
+      sides[3] = c;
+      numsides = 4;
+    } else {
+      sides[0] = d;
+      sides[1] = c;
+      numsides = 2;
+    }
+  } else {
+    if (p.y > bbox.top) {
+      sides[0] = c;
+      sides[1] = b;
+      numsides = 2;
+    } else if (p.y < bbox.bottom) {
+      sides[0] = a;
+      sides[1] = d;
+      numsides = 2;
+    } else {
+      return true;
+    }
+  }
+
+  for (int i = 0; i < numsides; i += 2) {
+    float a0 = player_angle_to_vec(player, sides[i]);
+    float a1 = player_angle_to_vec(player, sides[i + 1]);
+    int span = norm_angle(a0 - a1);
+    a0 -= player->angle;
+    int span1 = norm_angle(a0 + HALF_FOV);
+    if (span1 > FOV) {
+      if (span1 >= span + FOV) {
+        continue;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 void map_renderer_draw_map(MapRenderer* map_renderer) {
   DoomMap* map = map_renderer->map;
   for (size_t i = 0; i < map->numlinedefs; ++i) {
@@ -18,7 +96,7 @@ void map_renderer_draw_map(MapRenderer* map_renderer) {
     Vec2 v2 = map->vertices[linedef.end_vertex];
     v1 = vec2_remap_window(v1, map->min_pos, map->max_pos);
     v2 = vec2_remap_window(v2, map->min_pos, map->max_pos);
-    renderer_draw_line(map_renderer->renderer, v1, v2, 0x00ffffff);
+    renderer_draw_line(map_renderer->renderer, v1, v2, 0xff222222);
   }
   map_renderer_draw_bsp_node(map_renderer, map->numnodes - 1);
 }
@@ -48,13 +126,18 @@ void map_renderer_draw_bsp_node(MapRenderer* map_renderer, int16_t node_id) {
     return;
   }
 
+  map_renderer_draw_node(map_renderer, node_id);
   Node* node = &map_renderer->map->nodes[node_id];
   if (player_is_on_side(map_renderer->player, node)) {
     map_renderer_draw_bsp_node(map_renderer, node->left_child);
-    map_renderer_draw_bsp_node(map_renderer, node->right_child);
+    if (map_renderer_check_bbox(map_renderer, node->right)) {
+      map_renderer_draw_bsp_node(map_renderer, node->right_child);
+    }
   } else {
     map_renderer_draw_bsp_node(map_renderer, node->right_child);
-    map_renderer_draw_bsp_node(map_renderer, node->left_child);
+    if (map_renderer_check_bbox(map_renderer, node->left)) {
+      map_renderer_draw_bsp_node(map_renderer, node->left_child);
+    }
   }
 }
 

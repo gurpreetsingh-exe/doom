@@ -22,8 +22,8 @@ void engine_tick(Engine* engine, void (*draw)(MapRenderer*),
                  void (*update)(Player*, Event*)) {
   window_get_size(window);
   renderer_resize(engine->renderer, window->width, window->height);
-  draw(engine->map_renderer);
   update(engine->player, window->event);
+  draw(engine->map_renderer);
   renderer_submit(engine->renderer);
 }
 

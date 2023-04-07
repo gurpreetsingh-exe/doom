@@ -2,6 +2,7 @@
 #include "engine.h"
 #include "map_renderer.h"
 #include <math.h>
+#include <stdio.h>
 
 Window* window;
 
@@ -10,9 +11,8 @@ void draw(MapRenderer* map_renderer) {
   Player* player = map_renderer->player;
 
   map_renderer_draw_map(map_renderer);
-  map_renderer_draw_node(map_renderer, map->numnodes - 1);
   Vec2 pos = vec2_remap_window(player->pos, map->min_pos, map->max_pos);
-  float angle = -player->angle + PI / 2;
+  float angle = RADIANS(-player->angle + 45);
   float sin_a1 = sin((angle - PI / 4));
   float cos_a1 = cos((angle - PI / 4));
   float sin_a2 = sin((angle + PI / 4));
@@ -28,7 +28,7 @@ void draw(MapRenderer* map_renderer) {
 
 void update(Player* player, Event* event) {
   int speed = event->delta_time * 0.4;
-  float rot_speed = event->delta_time * 0.008;
+  float rot_speed = DEGREES(event->delta_time * 0.008);
 
   if (event->pressed[GLFW_KEY_LEFT]) {
     player->angle += rot_speed;
@@ -36,19 +36,20 @@ void update(Player* player, Event* event) {
   if (event->pressed[GLFW_KEY_RIGHT]) {
     player->angle -= rot_speed;
   }
-  float angle = player->angle;
+
+  float angle = RADIANS(player->angle - 45);
   Vec2 inc = VEC2_ZERO;
-  if (event->pressed[GLFW_KEY_W]) {
-    inc = vec2_add(rotate(vec2(speed, 0), angle), inc);
-  }
-  if (event->pressed[GLFW_KEY_S]) {
-    inc = vec2_add(rotate(vec2(-speed, 0), angle), inc);
+  if (event->pressed[GLFW_KEY_D]) {
+    inc = rotate(vec2(speed, 0), angle);
   }
   if (event->pressed[GLFW_KEY_A]) {
-    inc = vec2_add(rotate(vec2(0, speed), angle), inc);
+    inc = rotate(vec2(-speed, 0), angle);
   }
-  if (event->pressed[GLFW_KEY_D]) {
-    inc = vec2_add(rotate(vec2(0, -speed), angle), inc);
+  if (event->pressed[GLFW_KEY_W]) {
+    inc = rotate(vec2(0, speed), angle);
+  }
+  if (event->pressed[GLFW_KEY_S]) {
+    inc = rotate(vec2(0, -speed), angle);
   }
   player->pos = vec2_add(player->pos, inc);
 }

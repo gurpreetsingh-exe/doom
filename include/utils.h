@@ -10,9 +10,10 @@
 #define MAX(a, b) ((a > b) ? a : b)
 #define MIN(a, b) ((a < b) ? a : b)
 #define PI 3.14159265359
-#define RADIANS(a) ((a) * PI / 180)
-#define DEGREES(a) ((a) * 180 / PI);
+#define RADIANS(a) ((a)*PI / 180)
+#define DEGREES(a) ((a)*180 / PI)
 
 uint32_t convert_to_rgba(float x, float y, float z, float w);
+int norm_angle(int angle);
 
 #endif // !UTILS_H
