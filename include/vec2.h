@@ -47,6 +47,8 @@ FORCE_INLINE Vec2 vec2_remap_window(Vec2 v, Vec2 min_pos, Vec2 max_pos) {
 }
 
 FORCE_INLINE Vec2 rotate(Vec2 v, float angle) {
+  angle = norm_angle(angle);
+  angle = RADIANS(angle);
   return vec2(v.x * cos(angle) - v.y * sin(angle),
               v.x * sin(angle) + v.y * cos(angle));
 }

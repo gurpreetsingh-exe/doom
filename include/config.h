@@ -15,6 +15,8 @@ typedef struct {
   bool debug_sectors;
   bool top_view;
   bool v_sync;
+  bool clip_view;
+  int segments;
 } Config;
 
 #endif // !CONFIG_H

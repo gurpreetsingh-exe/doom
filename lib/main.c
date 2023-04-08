@@ -14,16 +14,17 @@ Config config;
 void draw(MapRenderer* map_renderer) {
   DoomMap* map = map_renderer->map;
   Player* player = map_renderer->player;
+  config.segments = 0;
   if (config.top_view) {
     map_renderer_draw_map(map_renderer);
 
     if (config.debug_fov) {
       Vec2 pos = vec2_remap_window(player->pos, map->min_pos, map->max_pos);
-      float angle = RADIANS(-player->angle + 45);
-      float sin_a1 = sin((angle - PI / 4));
-      float cos_a1 = cos((angle - PI / 4));
-      float sin_a2 = sin((angle + PI / 4));
-      float cos_a2 = cos((angle + PI / 4));
+      float angle = -player->angle + 90;
+      float sin_a1 = sin(RADIANS(angle - HALF_FOV));
+      float cos_a1 = cos(RADIANS(angle - HALF_FOV));
+      float sin_a2 = sin(RADIANS(angle + HALF_FOV));
+      float cos_a2 = cos(RADIANS(angle + HALF_FOV));
       int ray_len = 30;
 
       Vec2 v0 = vec2_add(pos, vec2(ray_len * sin_a1, ray_len * cos_a1));
@@ -33,12 +34,13 @@ void draw(MapRenderer* map_renderer) {
       renderer_draw_point(map_renderer->renderer, pos, 0xff0000ff);
     }
   } else {
+    map_renderer_draw_map(map_renderer);
   }
 }
 
 void update(Player* player, Event* event) {
   float speed = event->delta_time * 0.4;
-  float rot_speed = DEGREES(event->delta_time * 0.004);
+  float rot_speed = event->delta_time * 0.1;
 
   if (event->pressed[GLFW_KEY_LEFT]) {
     player->angle += rot_speed;
@@ -47,20 +49,20 @@ void update(Player* player, Event* event) {
     player->angle -= rot_speed;
   }
 
-  float angle = RADIANS(player->angle - 45);
   Vec2 inc = VEC2_ZERO;
-  if (event->pressed[GLFW_KEY_D]) {
-    inc = rotate(vec2(speed, 0), angle);
-  }
-  if (event->pressed[GLFW_KEY_A]) {
-    inc = rotate(vec2(-speed, 0), angle);
-  }
   if (event->pressed[GLFW_KEY_W]) {
-    inc = rotate(vec2(0, speed), angle);
+    inc = vec2(speed, 0);
   }
   if (event->pressed[GLFW_KEY_S]) {
-    inc = rotate(vec2(0, -speed), angle);
+    inc = vec2(-speed, 0);
   }
+  if (event->pressed[GLFW_KEY_A]) {
+    inc = vec2(0, speed);
+  }
+  if (event->pressed[GLFW_KEY_D]) {
+    inc = vec2(0, -speed);
+  }
+  inc = rotate(inc, player->angle);
   player->pos = vec2_add(player->pos, inc);
 }
 
@@ -72,6 +74,7 @@ int main() {
       .debug_sectors = true,
       .top_view = true,
       .v_sync = true,
+      .clip_view = true,
   };
 
   window = window_init(WIDTH, HEIGHT);
@@ -86,6 +89,7 @@ int main() {
     igBegin("Debug", NULL, window_flags);
     igText("DeltaTime: %2.3f ms", 1000.0 / io->Framerate);
     igText("FPS: %d", (int)io->Framerate);
+    igText("Segments: %d", config.segments);
     igCheckbox("V-Sync", &config.v_sync);
     igSeparator();
     igText("Display: %s\n", config.top_view ? "Map View" : "Player View");
@@ -95,6 +99,7 @@ int main() {
       igCheckbox("Map", &config.display_map);
       igCheckbox("Debug FOV", &config.debug_fov);
       igCheckbox("Sectors", &config.debug_sectors);
+      igCheckbox("Clip Segments", &config.clip_view);
     }
     igEnd();
     renderer_clear(engine->renderer);

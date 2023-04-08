@@ -14,7 +14,8 @@
 #define DEGREES(a) ((a)*180 / PI)
 
 uint32_t convert_to_rgba(float x, float y, float z, float w);
-int norm_angle(int angle);
-int angle_to_screen(float angle);
+float norm_angle(float angle);
+// int angle_to_screen(float angle);
+int angle_to_screen(float angle, int hw);
 
 #endif // !UTILS_H

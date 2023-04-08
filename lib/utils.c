@@ -1,5 +1,7 @@
 #include "utils.h"
+#include "config.h"
 #include <math.h>
+#include <stdio.h>
 
 uint32_t convert_to_rgba(float x, float y, float z, float w) {
   uint8_t r = (uint8_t)(x * 255.0f);
@@ -11,23 +13,39 @@ uint32_t convert_to_rgba(float x, float y, float z, float w) {
   return result;
 }
 
-int norm_angle(int angle) {
-  angle %= 360;
+float norm_angle(float angle) {
+  angle = fmodf(angle, 360);
   if (angle < 0) {
     angle += 360;
   }
   return angle;
 }
 
-int angle_to_screen(float angle) {
-  int x = 0;
-  if (angle > 90) {
-    angle -= 90;
-    x = 160 - round(tanf(RADIANS(angle)) * 160);
+int angle_to_screen(float angle, int hw) {
+  float SCREEN_DIST = hw / tan(RADIANS(HALF_FOV));
+
+  // if angle > 0:
+  //     x = SCREEN_DIST - math.tan(math.radians(angle)) * H_WIDTH
+  // else:
+  //     x = -math.tan(math.radians(angle)) * H_WIDTH + SCREEN_DIST
+  // return int(x)
+  float x = 0;
+  if (angle > 0) {
+    x = SCREEN_DIST - tan(RADIANS(angle)) * hw;
+    // printf("angle_to_screen: %f\n", x);
   } else {
-    angle = 90 - angle;
-    x = round(tanf(RADIANS(angle)) * 160);
-    x += 160;
+    x = -tan(RADIANS(angle)) * hw + SCREEN_DIST;
   }
   return x;
+
+  // int x = 0;
+  // if (angle > 90) {
+  //   angle -= 90;
+  //   x = 160 - round(tanf(RADIANS(angle)) * 160);
+  // } else {
+  //   angle = 90 - angle;
+  //   x = round(tanf(RADIANS(angle)) * 160);
+  //   x += 160;
+  // }
+  // return x;
 }
