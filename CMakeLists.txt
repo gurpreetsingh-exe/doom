@@ -20,6 +20,7 @@ set(SOURCES
     lib/player.c
     lib/engine.c
     lib/utils.c
+    lib/imgui_layer.c
     ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp)
 

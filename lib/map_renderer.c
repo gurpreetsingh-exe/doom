@@ -3,12 +3,13 @@
 #include "player.h"
 #include <stdlib.h>
 
-MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer,
-                               Player* player) {
+MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer, Player* player,
+                               Config* config) {
   MapRenderer* map_renderer = (MapRenderer*)malloc(sizeof(MapRenderer));
   map_renderer->map = map;
   map_renderer->renderer = renderer;
   map_renderer->player = player;
+  map_renderer->config = config;
   return map_renderer;
 }
 
@@ -90,13 +91,15 @@ bool map_renderer_check_bbox(MapRenderer* map_renderer, BBox bbox) {
 
 void map_renderer_draw_map(MapRenderer* map_renderer) {
   DoomMap* map = map_renderer->map;
-  for (size_t i = 0; i < map->numlinedefs; ++i) {
-    LineDef linedef = map->linedefs[i];
-    Vec2 v1 = map->vertices[linedef.start_vertex];
-    Vec2 v2 = map->vertices[linedef.end_vertex];
-    v1 = vec2_remap_window(v1, map->min_pos, map->max_pos);
-    v2 = vec2_remap_window(v2, map->min_pos, map->max_pos);
-    renderer_draw_line(map_renderer->renderer, v1, v2, 0xff222222);
+  if (map_renderer->config->display_map) {
+    for (size_t i = 0; i < map->numlinedefs; ++i) {
+      LineDef linedef = map->linedefs[i];
+      Vec2 v1 = map->vertices[linedef.start_vertex];
+      Vec2 v2 = map->vertices[linedef.end_vertex];
+      v1 = vec2_remap_window(v1, map->min_pos, map->max_pos);
+      v2 = vec2_remap_window(v2, map->min_pos, map->max_pos);
+      renderer_draw_line(map_renderer->renderer, v1, v2, 0xff222222);
+    }
   }
   map_renderer_draw_bsp_node(map_renderer, map->numnodes - 1);
 }
@@ -106,7 +109,7 @@ void map_renderer_draw_subsector(MapRenderer* map_renderer, int16_t node_id) {
   SubSector sub_sector = map->subsectors[node_id];
   for (size_t i = 0; i < sub_sector.seg_count; ++i) {
     Segment seg = map->segments[sub_sector.first_seg + i];
-    srand(sub_sector.first_seg + i);
+    srand(seg.start_vertex + seg.end_vertex);
     Vec2 v1 = map->vertices[seg.start_vertex];
     Vec2 v2 = map->vertices[seg.end_vertex];
     v1 = vec2_remap_window(v1, map->min_pos, map->max_pos);
@@ -122,11 +125,16 @@ void map_renderer_draw_subsector(MapRenderer* map_renderer, int16_t node_id) {
 
 void map_renderer_draw_bsp_node(MapRenderer* map_renderer, int16_t node_id) {
   if (node_id & SSECTOR_IDENTIFIER) {
-    map_renderer_draw_subsector(map_renderer, node_id & (~SSECTOR_IDENTIFIER));
+    if (map_renderer->config->debug_sectors) {
+      map_renderer_draw_subsector(map_renderer,
+                                  node_id & (~SSECTOR_IDENTIFIER));
+    }
     return;
   }
 
-  map_renderer_draw_node(map_renderer, node_id);
+  if (map_renderer->config->debug_bsp_view) {
+    map_renderer_draw_node(map_renderer, node_id);
+  }
   Node* node = &map_renderer->map->nodes[node_id];
   if (player_is_on_side(map_renderer->player, node)) {
     map_renderer_draw_bsp_node(map_renderer, node->left_child);
