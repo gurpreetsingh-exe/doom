@@ -1,7 +1,6 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#include "config.h"
 #include "map.h"
 #include "map_renderer.h"
 #include "player.h"
@@ -15,11 +14,9 @@ typedef struct {
   Wad* wad;
   MapRenderer* map_renderer;
   uint32_t width, height;
-  Config* config;
 } Engine;
 
-Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height,
-                    Config* config);
+Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height);
 void engine_tick(Engine* engine, void (*draw)(MapRenderer*),
                  void (*update)(Player*, Event*));
 void engine_destroy(Engine* engine);

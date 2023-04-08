@@ -9,31 +9,35 @@
 #include "cimgui.h"
 
 Window* window;
+Config config;
 
 void draw(MapRenderer* map_renderer) {
   DoomMap* map = map_renderer->map;
   Player* player = map_renderer->player;
-  map_renderer_draw_map(map_renderer);
+  if (config.top_view) {
+    map_renderer_draw_map(map_renderer);
 
-  if (map_renderer->config->debug_fov) {
-    Vec2 pos = vec2_remap_window(player->pos, map->min_pos, map->max_pos);
-    float angle = RADIANS(-player->angle + 45);
-    float sin_a1 = sin((angle - PI / 4));
-    float cos_a1 = cos((angle - PI / 4));
-    float sin_a2 = sin((angle + PI / 4));
-    float cos_a2 = cos((angle + PI / 4));
-    int ray_len = 30;
+    if (config.debug_fov) {
+      Vec2 pos = vec2_remap_window(player->pos, map->min_pos, map->max_pos);
+      float angle = RADIANS(-player->angle + 45);
+      float sin_a1 = sin((angle - PI / 4));
+      float cos_a1 = cos((angle - PI / 4));
+      float sin_a2 = sin((angle + PI / 4));
+      float cos_a2 = cos((angle + PI / 4));
+      int ray_len = 30;
 
-    Vec2 v0 = vec2_add(pos, vec2(ray_len * sin_a1, ray_len * cos_a1));
-    Vec2 v1 = vec2_add(pos, vec2(ray_len * sin_a2, ray_len * cos_a2));
-    renderer_draw_line(map_renderer->renderer, pos, v0, 0xff00ffff);
-    renderer_draw_line(map_renderer->renderer, pos, v1, 0xff00ffff);
-    renderer_draw_point(map_renderer->renderer, pos, 0xff0000ff);
+      Vec2 v0 = vec2_add(pos, vec2(ray_len * sin_a1, ray_len * cos_a1));
+      Vec2 v1 = vec2_add(pos, vec2(ray_len * sin_a2, ray_len * cos_a2));
+      renderer_draw_line(map_renderer->renderer, pos, v0, 0xff00ffff);
+      renderer_draw_line(map_renderer->renderer, pos, v1, 0xff00ffff);
+      renderer_draw_point(map_renderer->renderer, pos, 0xff0000ff);
+    }
+  } else {
   }
 }
 
 void update(Player* player, Event* event) {
-  int speed = event->delta_time * 0.4;
+  float speed = event->delta_time * 0.4;
   float rot_speed = DEGREES(event->delta_time * 0.004);
 
   if (event->pressed[GLFW_KEY_LEFT]) {
@@ -61,26 +65,37 @@ void update(Player* player, Event* event) {
 }
 
 int main() {
-  Config config = {
+  config = (Config){
       .debug_bsp_view = false,
       .display_map = false,
       .debug_fov = true,
       .debug_sectors = true,
+      .top_view = true,
+      .v_sync = true,
   };
 
   window = window_init(WIDTH, HEIGHT);
-  Engine* engine =
-      engine_init("../assets/DOOM.WAD", WIDTH / 2, HEIGHT / 2, &config);
+  Engine* engine = engine_init("../assets/DOOM.WAD", WIDTH / 2, HEIGHT / 2);
   imgui_init();
+  ImGuiIO* io = igGetIO();
 
   ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
   while (window_is_running(window)) {
+    glfwSwapInterval(config.v_sync);
     imgui_begin_frame();
     igBegin("Debug", NULL, window_flags);
-    igCheckbox("BSP Nodes", &config.debug_bsp_view);
-    igCheckbox("Map", &config.display_map);
-    igCheckbox("Debug FOV", &config.debug_fov);
-    igCheckbox("Sectors", &config.debug_sectors);
+    igText("DeltaTime: %2.3f ms", 1000.0 / io->Framerate);
+    igText("FPS: %d", (int)io->Framerate);
+    igCheckbox("V-Sync", &config.v_sync);
+    igSeparator();
+    igText("Display: %s\n", config.top_view ? "Map View" : "Player View");
+    igSeparator();
+    if (config.top_view) {
+      igCheckbox("BSP Nodes", &config.debug_bsp_view);
+      igCheckbox("Map", &config.display_map);
+      igCheckbox("Debug FOV", &config.debug_fov);
+      igCheckbox("Sectors", &config.debug_sectors);
+    }
     igEnd();
     renderer_clear(engine->renderer);
     engine_tick(engine, draw, update);

@@ -3,13 +3,14 @@
 #include "player.h"
 #include <stdlib.h>
 
-MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer, Player* player,
-                               Config* config) {
+extern Config config;
+
+MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer,
+                               Player* player) {
   MapRenderer* map_renderer = (MapRenderer*)malloc(sizeof(MapRenderer));
   map_renderer->map = map;
   map_renderer->renderer = renderer;
   map_renderer->player = player;
-  map_renderer->config = config;
   return map_renderer;
 }
 
@@ -91,7 +92,7 @@ bool map_renderer_check_bbox(MapRenderer* map_renderer, BBox bbox) {
 
 void map_renderer_draw_map(MapRenderer* map_renderer) {
   DoomMap* map = map_renderer->map;
-  if (map_renderer->config->display_map) {
+  if (config.display_map) {
     for (size_t i = 0; i < map->numlinedefs; ++i) {
       LineDef linedef = map->linedefs[i];
       Vec2 v1 = map->vertices[linedef.start_vertex];
@@ -125,14 +126,14 @@ void map_renderer_draw_subsector(MapRenderer* map_renderer, int16_t node_id) {
 
 void map_renderer_draw_bsp_node(MapRenderer* map_renderer, int16_t node_id) {
   if (node_id & SSECTOR_IDENTIFIER) {
-    if (map_renderer->config->debug_sectors) {
+    if (config.debug_sectors) {
       map_renderer_draw_subsector(map_renderer,
                                   node_id & (~SSECTOR_IDENTIFIER));
     }
     return;
   }
 
-  if (map_renderer->config->debug_bsp_view) {
+  if (config.debug_bsp_view) {
     map_renderer_draw_node(map_renderer, node_id);
   }
   Node* node = &map_renderer->map->nodes[node_id];

@@ -3,8 +3,7 @@
 
 extern Window* window;
 
-Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height,
-                    Config* config) {
+Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height) {
   Engine* engine = (Engine*)malloc(sizeof(Engine));
   engine->width = width;
   engine->height = height;
@@ -14,8 +13,7 @@ Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height,
   Image* image = image_init(width, height);
   engine->renderer = renderer_init(image);
   engine->map_renderer =
-      map_renderer_init(engine->map, engine->renderer, engine->player, config);
-  engine->config = config;
+      map_renderer_init(engine->map, engine->renderer, engine->player);
 
   return engine;
 }

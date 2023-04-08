@@ -13,6 +13,8 @@ typedef struct {
   bool display_map;
   bool debug_fov;
   bool debug_sectors;
+  bool top_view;
+  bool v_sync;
 } Config;
 
 #endif // !CONFIG_H

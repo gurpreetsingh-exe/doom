@@ -1,14 +1,17 @@
 #include "window.h"
 #include "GLFW/glfw3.h"
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+extern Config config;
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action,
                          int mods) {
   Event* event = (Event*)(glfwGetWindowUserPointer(window));
   if (action == GLFW_PRESS) {
-    if (key == GLFW_KEY_ESCAPE) {
-      event->disable_cursor = !event->disable_cursor;
+    if (key == GLFW_KEY_TAB) {
+      config.top_view = !config.top_view;
     }
     event->pressed[key] = true;
   } else if (action == GLFW_RELEASE) {
@@ -46,26 +49,14 @@ Window* window_init(uint32_t width, uint32_t height) {
 }
 
 static double last_time = 0;
-static double last_time2 = 0;
-static int nframe = 0;
-#define TIME_DIFF 0.5
 
 bool window_is_running(Window* window) {
   bool is_running = !glfwWindowShouldClose(window->handle);
   glfwPollEvents();
   glfwSwapBuffers(window->handle);
   double time = glfwGetTime();
-  double ms = time - last_time;
-  window->event->delta_time = (time - last_time2) * 1000;
-  nframe++;
-  if (ms >= TIME_DIFF) {
-    char title[32] = {0};
-    snprintf(title, 32, "Doom Engine %3.2f", (float)nframe / ms);
-    glfwSetWindowTitle(window->handle, title);
-    nframe = 0;
-    last_time += TIME_DIFF;
-  }
-  last_time2 = time;
+  window->event->delta_time = (time - last_time) * 1000;
+  last_time = time;
   return is_running;
 }
 
