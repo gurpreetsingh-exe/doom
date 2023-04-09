@@ -1,6 +1,7 @@
 #include "map_renderer.h"
 #include "config.h"
 #include "player.h"
+#include <assert.h>
 #include <stdlib.h>
 
 extern Config config;
@@ -14,83 +15,88 @@ MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer,
   return map_renderer;
 }
 
+static int16_t bbox_side_from_index(BBox bbox, int16_t index) {
+  switch (index) {
+  case 0:
+    return bbox.top;
+  case 1:
+    return bbox.bottom;
+  case 2:
+    return bbox.left;
+  case 3:
+    return bbox.right;
+  default:
+    assert(false && "out of bounds index\n");
+  }
+}
+
+int checkcoord[12][4] = {{3, 0, 2, 1}, {3, 0, 2, 0}, {3, 1, 2, 0}, {0},
+                         {2, 0, 2, 1}, {0, 0, 0, 0}, {3, 1, 3, 0}, {0},
+                         {2, 0, 3, 1}, {2, 1, 3, 1}, {2, 1, 3, 0}};
+
 bool map_renderer_check_bbox(MapRenderer* map_renderer, BBox bbox) {
-  return true;
-#if 0
-  Vec2 a = vec2(bbox.left, bbox.bottom);
-  Vec2 b = vec2(bbox.left, bbox.top);
-  Vec2 c = vec2(bbox.right, bbox.top);
-  Vec2 d = vec2(bbox.right, bbox.bottom);
   Player* player = map_renderer->player;
   Vec2 p = player->pos;
-  Vec2 sides[4] = {0};
-  int numsides = 0;
-
-  if (p.x < bbox.left) {
-    if (p.y > bbox.top) {
-      sides[0] = b;
-      sides[1] = a;
-      sides[2] = c;
-      sides[3] = b;
-      numsides = 4;
-    } else if (p.y < bbox.bottom) {
-      sides[0] = b;
-      sides[1] = a;
-      sides[2] = a;
-      sides[3] = d;
-      numsides = 4;
-    } else {
-      sides[0] = b;
-      sides[1] = a;
-      numsides = 2;
-    }
-  } else if (p.x > bbox.right) {
-    if (p.y > bbox.top) {
-      sides[0] = c;
-      sides[1] = b;
-      sides[2] = d;
-      sides[3] = c;
-      numsides = 4;
-    } else if (p.y < bbox.bottom) {
-      sides[0] = a;
-      sides[1] = d;
-      sides[2] = d;
-      sides[3] = c;
-      numsides = 4;
-    } else {
-      sides[0] = d;
-      sides[1] = c;
-      numsides = 2;
-    }
+  int16_t boxx, boxy;
+  int16_t boxpos;
+  if (p.x <= bbox.left) {
+    boxx = 0;
+  } else if (p.x < bbox.right) {
+    boxx = 1;
   } else {
-    if (p.y > bbox.top) {
-      sides[0] = c;
-      sides[1] = b;
-      numsides = 2;
-    } else if (p.y < bbox.bottom) {
-      sides[0] = a;
-      sides[1] = d;
-      numsides = 2;
-    } else {
-      return true;
-    }
+    boxx = 2;
   }
 
-  for (int i = 0; i < numsides; i += 2) {
-    float a0 = player_angle_to_vec(player, sides[i]);
-    float a1 = player_angle_to_vec(player, sides[i + 1]);
-    int span = norm_angle(a0 - a1);
-    a0 -= player->angle;
-    float span1 = norm_angle(a0 + HALF_FOV);
-    if (span1 > FOV) {
-      if (span1 >= span + FOV) {
-        continue;
-      }
-      return true;
-    }
+  if (p.y <= bbox.top) {
+    boxy = 0;
+  } else if (p.y < bbox.bottom) {
+    boxy = 1;
+  } else {
+    boxy = 2;
   }
-  return false;
-#endif
+
+  boxpos = (boxy << 2) + boxx;
+  if (boxpos == 5) {
+    return true;
+  }
+
+  Vec2 p0 = vec2(bbox_side_from_index(bbox, checkcoord[boxpos][0]),
+                 bbox_side_from_index(bbox, checkcoord[boxpos][1]));
+  Vec2 p1 = vec2(bbox_side_from_index(bbox, checkcoord[boxpos][2]),
+                 bbox_side_from_index(bbox, checkcoord[boxpos][3]));
+
+  float a0 = player_angle_to_vec(player, p0) - player->angle;
+  float a1 = player_angle_to_vec(player, p1) - player->angle;
+
+  float span = norm_angle(a0 - a1);
+  if (span >= 180) {
+    return true;
+  }
+
+  float span1 = norm_angle(a0 + HALF_FOV);
+  if (span1 > FOV) {
+    if (span1 >= span + FOV) {
+      return false;
+    }
+    a0 = HALF_FOV;
+  }
+
+  float span2 = norm_angle(HALF_FOV - a1);
+  if (span2 > FOV) {
+    if (span2 >= span + FOV) {
+      return false;
+    }
+    a1 = -HALF_FOV;
+  }
+
+  int x0 = angle_to_screen(a0);
+  int x1 = angle_to_screen(a1);
+
+  if (x0 == x1) {
+    return false;
+  }
+
+  return true;
 }
 
 bool map_renderer_add_segment(MapRenderer* map_renderer, Vec2 v0, Vec2 v1,
@@ -122,10 +128,8 @@ bool map_renderer_add_segment(MapRenderer* map_renderer, Vec2 v0, Vec2 v1,
     a1 = -HALF_FOV;
   }
 
-  int hw = (map_renderer->renderer->image->width - 1) / 2;
-
-  *x1 = angle_to_screen(a0, hw);
-  *x2 = angle_to_screen(a1, hw);
+  *x1 = angle_to_screen(a0);
+  *x2 = angle_to_screen(a1);
 
   return true;
 }
@@ -204,10 +208,7 @@ void map_renderer_draw_segment(MapRenderer* map_renderer, Segment seg) {
 
 void map_renderer_draw_bsp_node(MapRenderer* map_renderer, int16_t node_id) {
   if (node_id & SSECTOR_IDENTIFIER) {
-    if (config.debug_sectors) {
-      map_renderer_draw_subsector(map_renderer,
-                                  node_id & (~SSECTOR_IDENTIFIER));
-    }
+    map_renderer_draw_subsector(map_renderer, node_id & (~SSECTOR_IDENTIFIER));
     return;
   }
 

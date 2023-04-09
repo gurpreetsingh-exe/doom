@@ -15,7 +15,6 @@
 
 uint32_t convert_to_rgba(float x, float y, float z, float w);
 float norm_angle(float angle);
-// int angle_to_screen(float angle);
-int angle_to_screen(float angle, int hw);
+int angle_to_screen(float angle);
 
 #endif // !UTILS_H

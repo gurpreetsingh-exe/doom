@@ -1,7 +1,10 @@
 #include "utils.h"
 #include "config.h"
+#include "window.h"
 #include <math.h>
 #include <stdio.h>
+
+extern Window* window;
 
 uint32_t convert_to_rgba(float x, float y, float z, float w) {
   uint8_t r = (uint8_t)(x * 255.0f);
@@ -21,31 +24,14 @@ float norm_angle(float angle) {
   return angle;
 }
 
-int angle_to_screen(float angle, int hw) {
+int angle_to_screen(float angle) {
+  int hw = (window->width / 4) - 1;
   float SCREEN_DIST = hw / tan(RADIANS(HALF_FOV));
-
-  // if angle > 0:
-  //     x = SCREEN_DIST - math.tan(math.radians(angle)) * H_WIDTH
-  // else:
-  //     x = -math.tan(math.radians(angle)) * H_WIDTH + SCREEN_DIST
-  // return int(x)
   float x = 0;
   if (angle > 0) {
     x = SCREEN_DIST - tan(RADIANS(angle)) * hw;
-    // printf("angle_to_screen: %f\n", x);
   } else {
     x = -tan(RADIANS(angle)) * hw + SCREEN_DIST;
   }
   return x;
-
-  // int x = 0;
-  // if (angle > 90) {
-  //   angle -= 90;
-  //   x = 160 - round(tanf(RADIANS(angle)) * 160);
-  // } else {
-  //   angle = 90 - angle;
-  //   x = round(tanf(RADIANS(angle)) * 160);
-  //   x += 160;
-  // }
-  // return x;
 }
