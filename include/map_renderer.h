@@ -6,9 +6,19 @@
 #include "renderer.h"
 
 typedef struct {
+  int first;
+  int last;
+} ClipRange;
+
+#define MAXSEGS 32
+
+typedef struct {
   DoomMap* map;
   Renderer* renderer;
   Player* player;
+
+  ClipRange* newend;
+  ClipRange* solidsegs;
 } MapRenderer;
 
 MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer,
@@ -24,5 +34,8 @@ void map_renderer_draw_node(MapRenderer* map_renderer, int16_t node_id);
 void map_renderer_draw_subsector(MapRenderer* map_renderer, int16_t node_id);
 void map_renderer_draw_bsp_node(MapRenderer* map_renderer, int16_t node_id);
 void map_renderer_destroy(MapRenderer* map_renderer);
+
+void clip_solid_wall(MapRenderer* map_renderer, Segment* segment, int x1,
+                     int x2);
 
 #endif // !MAP_RENDERER_H

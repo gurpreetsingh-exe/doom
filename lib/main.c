@@ -2,6 +2,7 @@
 #include "engine.h"
 #include "imgui_layer.h"
 #include "map_renderer.h"
+#include <limits.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -15,6 +16,15 @@ void draw(MapRenderer* map_renderer) {
   DoomMap* map = map_renderer->map;
   Player* player = map_renderer->player;
   config.segments = 0;
+
+  map_renderer->solidsegs[0].first = INT_MIN;
+  map_renderer->solidsegs[0].last = -1;
+
+  map_renderer->solidsegs[1].first = map_renderer->renderer->image->width;
+  map_renderer->solidsegs[1].last = INT_MAX;
+
+  map_renderer->newend = map_renderer->solidsegs + 2;
+
   if (config.top_view) {
     map_renderer_draw_map(map_renderer);
 

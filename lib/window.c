@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 extern Config config;
+static double last_time = 0;
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action,
                          int mods) {
@@ -47,8 +48,6 @@ Window* window_init(uint32_t width, uint32_t height) {
 
   return window;
 }
-
-static double last_time = 0;
 
 bool window_is_running(Window* window) {
   bool is_running = !glfwWindowShouldClose(window->handle);

@@ -25,6 +25,7 @@ float norm_angle(float angle) {
 }
 
 int angle_to_screen(float angle) {
+  // int hw = ((window->width / 2) / 2) - 1;
   int hw = window->width / 4;
   float screen_dist = hw / tan(RADIANS(HALF_FOV));
   float x = 0;

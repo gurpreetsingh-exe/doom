@@ -12,6 +12,8 @@ MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer,
   map_renderer->map = map;
   map_renderer->renderer = renderer;
   map_renderer->player = player;
+  map_renderer->solidsegs = malloc(MAXSEGS * sizeof(ClipRange));
+  map_renderer->newend = NULL;
   return map_renderer;
 }
 
@@ -153,26 +155,85 @@ void map_renderer_draw_map(MapRenderer* map_renderer) {
   map_renderer_draw_bsp_node(map_renderer, map->numnodes - 1);
 }
 
-void map_renderer_draw_vlines(MapRenderer* map_renderer, Segment seg, int x1,
-                              int x2) {
-  srand(seg.start_vertex + seg.end_vertex);
+static void store_wall_range(MapRenderer* map_renderer, Segment* segment,
+                             int x1, int x2) {
+  srand(segment->start_vertex + segment->end_vertex);
   uint8_t r = rand() % 255;
   uint8_t g = rand() % 255;
   uint8_t b = rand() % 255;
   uint8_t a = 255;
   uint32_t color = (a << 24) | (b << 16) | (g << 8) | r;
   int16_t height = map_renderer->renderer->image->height - 1;
-#if 1
-  for (int16_t x = x1; x < x2; ++x) {
+  for (int16_t x = x1; x <= x2; ++x) {
     renderer_draw_line(map_renderer->renderer, vec2(x, 0), vec2(x, height),
                        color);
   }
-#else
-  renderer_draw_line(map_renderer->renderer, vec2(x1, 0), vec2(x1, height),
-                     color);
-  renderer_draw_line(map_renderer->renderer, vec2(x2 - 1, 0),
-                     vec2(x2 - 1, height), color);
-#endif
+}
+
+void clip_solid_wall(MapRenderer* map_renderer, Segment* segment, int x1,
+                     int x2) {
+  ClipRange* start = map_renderer->solidsegs;
+  ClipRange* next;
+  while (start->last < x1 - 1) {
+    start++;
+  }
+  if (x1 < start->first) {
+    if (x2 < start->first - 1) {
+      store_wall_range(map_renderer, segment, x1, x2);
+      next = map_renderer->newend;
+      map_renderer->newend++;
+      while (next != start) {
+        *next = *(next - 1);
+        next--;
+      }
+      next->first = x1;
+      next->last = x2;
+      return;
+    }
+    store_wall_range(map_renderer, segment, x1, start->first - 1);
+    start->first = x1;
+  }
+
+  if (x2 <= start->last) {
+    return;
+  }
+
+  next = start;
+  while (x2 >= (next + 1)->first - 1) {
+    store_wall_range(map_renderer, segment, next->last + 1,
+                     (next + 1)->first - 1);
+    next++;
+    if (x2 <= next->last) {
+      start->last = next->last;
+      goto crunch;
+    }
+  }
+  store_wall_range(map_renderer, segment, next->last + 1, x2);
+  start->last = x2;
+crunch:
+  if (next == start) {
+    return;
+  }
+  while (next++ != map_renderer->newend) {
+    *++start = *next;
+  }
+  map_renderer->newend = start + 1;
+}
+
+void map_renderer_draw_vlines(MapRenderer* map_renderer, Segment seg, int x1,
+                              int x2) {
+  clip_solid_wall(map_renderer, &seg, x1, x2);
+  // srand(seg.start_vertex + seg.end_vertex);
+  // uint8_t r = rand() % 255;
+  // uint8_t g = rand() % 255;
+  // uint8_t b = rand() % 255;
+  // uint8_t a = 255;
+  // uint32_t color = (a << 24) | (b << 16) | (g << 8) | r;
+  // int16_t height = map_renderer->renderer->image->height - 1;
+  // for (int16_t x = x1; x < x2; ++x) {
+  //   renderer_draw_line(map_renderer->renderer, vec2(x, 0), vec2(x, height),
+  //                      color);
+  // }
 }
 
 void map_renderer_draw_subsector(MapRenderer* map_renderer, int16_t node_id) {
@@ -256,4 +317,7 @@ void map_renderer_draw_node(MapRenderer* map_renderer, int16_t node_id) {
   renderer_draw_rect(map_renderer->renderer, v0, v1, 0xff00ff00);
 }
 
-void map_renderer_destroy(MapRenderer* map_renderer) { free(map_renderer); }
+void map_renderer_destroy(MapRenderer* map_renderer) {
+  free(map_renderer->solidsegs);
+  free(map_renderer);
+}
