@@ -2,6 +2,8 @@
 #define UTILS_H
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
 

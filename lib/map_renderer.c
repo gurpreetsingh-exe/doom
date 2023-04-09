@@ -131,6 +131,10 @@ bool map_renderer_add_segment(MapRenderer* map_renderer, Vec2 v0, Vec2 v1,
   *x1 = angle_to_screen(a0);
   *x2 = angle_to_screen(a1);
 
+  if (*x1 == *x2) {
+    return false;
+  }
+
   return true;
 }
 
@@ -157,11 +161,18 @@ void map_renderer_draw_vlines(MapRenderer* map_renderer, Segment seg, int x1,
   uint8_t b = rand() % 255;
   uint8_t a = 255;
   uint32_t color = (a << 24) | (b << 16) | (g << 8) | r;
-  Image* image = map_renderer->renderer->image;
-  renderer_draw_line(map_renderer->renderer, vec2(x1, 0),
-                     vec2(x1, image->height - 1), color);
-  renderer_draw_line(map_renderer->renderer, vec2(x2, 0),
-                     vec2(x2, image->height - 1), color);
+  int16_t height = map_renderer->renderer->image->height - 1;
+#if 1
+  for (int16_t x = x1; x < x2; ++x) {
+    renderer_draw_line(map_renderer->renderer, vec2(x, 0), vec2(x, height),
+                       color);
+  }
+#else
+  renderer_draw_line(map_renderer->renderer, vec2(x1, 0), vec2(x1, height),
+                     color);
+  renderer_draw_line(map_renderer->renderer, vec2(x2 - 1, 0),
+                     vec2(x2 - 1, height), color);
+#endif
 }
 
 void map_renderer_draw_subsector(MapRenderer* map_renderer, int16_t node_id) {
