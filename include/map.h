@@ -12,6 +12,8 @@ typedef struct {
   uint32_t numthings;
   LineDef* linedefs;
   uint32_t numlinedefs;
+  SideDef* sidedefs;
+  uint32_t numsidedefs;
   Vec2* vertices;
   uint32_t numvertices;
   Segment* segments;

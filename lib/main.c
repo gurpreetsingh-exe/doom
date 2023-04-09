@@ -17,14 +17,6 @@ void draw(MapRenderer* map_renderer) {
   Player* player = map_renderer->player;
   config.segments = 0;
 
-  map_renderer->solidsegs[0].first = INT_MIN;
-  map_renderer->solidsegs[0].last = -1;
-
-  map_renderer->solidsegs[1].first = map_renderer->renderer->image->width;
-  map_renderer->solidsegs[1].last = INT_MAX;
-
-  map_renderer->newend = map_renderer->solidsegs + 2;
-
   if (config.top_view) {
     map_renderer_draw_map(map_renderer);
 
@@ -44,6 +36,14 @@ void draw(MapRenderer* map_renderer) {
       renderer_draw_point(map_renderer->renderer, pos, 0xff0000ff);
     }
   } else {
+    map_renderer->solidsegs[0].first = INT_MIN;
+    map_renderer->solidsegs[0].last = -1;
+
+    map_renderer->solidsegs[1].first = map_renderer->renderer->image->width;
+    map_renderer->solidsegs[1].last = INT_MAX;
+
+    map_renderer->newend = map_renderer->solidsegs + 2;
+
     map_renderer_draw_map(map_renderer);
   }
 }

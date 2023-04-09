@@ -51,6 +51,15 @@ typedef struct {
 } LineDef;
 
 typedef struct {
+  int16_t x_offset;
+  int16_t y_offset;
+  char upper_texture[8];
+  char lower_texture[8];
+  char middle_texture[8];
+  int16_t sector_num;
+} SideDef;
+
+typedef struct {
   int16_t seg_count;
   int16_t first_seg;
 } SubSector;

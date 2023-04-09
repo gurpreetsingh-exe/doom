@@ -17,6 +17,10 @@ DoomMap* load_map(Wad* wad, char* name) {
   READ_LUMP(LineDef, map->linedefs, lump);
   map->numlinedefs = lump.size / sizeof(LineDef);
 
+  lump = WAD_SIDEDEF(index);
+  READ_LUMP(SideDef, map->sidedefs, lump);
+  map->numsidedefs = lump.size / sizeof(SideDef);
+
   lump = WAD_VERTEX(index);
   READ_LUMP(Vec2, map->vertices, lump);
   map->numvertices = lump.size / sizeof(Vec2);
@@ -51,6 +55,7 @@ void map_calc_bounds(DoomMap* map) {
 void map_destroy(DoomMap* map) {
   free(map->things);
   free(map->linedefs);
+  free(map->sidedefs);
   free(map->vertices);
   free(map->segments);
   free(map->subsectors);

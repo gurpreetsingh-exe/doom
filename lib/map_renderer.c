@@ -3,8 +3,17 @@
 #include "player.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 extern Config config;
+
+static int hash(char name[8]) {
+  int hash = 593049;
+  for (int i = 0; i < 7; ++i) {
+    hash += (hash << 5) + name[i];
+  }
+  return hash;
+}
 
 MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer,
                                Player* player) {
@@ -157,7 +166,10 @@ void map_renderer_draw_map(MapRenderer* map_renderer) {
 
 static void store_wall_range(MapRenderer* map_renderer, Segment* segment,
                              int x1, int x2) {
-  srand(segment->start_vertex + segment->end_vertex);
+  DoomMap* map = map_renderer->map;
+  LineDef ld = map->linedefs[segment->linedef];
+  char* name = map->sidedefs[ld.front_sidedef].middle_texture;
+  srand(hash(name));
   uint8_t r = rand() % 255;
   uint8_t g = rand() % 255;
   uint8_t b = rand() % 255;
@@ -172,6 +184,32 @@ static void store_wall_range(MapRenderer* map_renderer, Segment* segment,
 
 void clip_solid_wall(MapRenderer* map_renderer, Segment* segment, int x1,
                      int x2) {
+#if 1
+  ClipRange* start;
+  start = map_renderer->solidsegs;
+  while (start->last < x1 - 1) {
+    start++;
+  }
+  if (x1 < start->first) {
+    if (x2 < start->first - 1) {
+      store_wall_range(map_renderer, segment, x1, x2);
+      return;
+    }
+    store_wall_range(map_renderer, segment, x1, start->first - 1);
+  }
+  if (x2 <= start->last) {
+    return;
+  }
+  while (x2 >= (start + 1)->first - 1) {
+    store_wall_range(map_renderer, segment, start->last + 1,
+                     (start + 1)->first - 1);
+    start++;
+    if (x2 <= start->last) {
+      return;
+    }
+  }
+  store_wall_range(map_renderer, segment, start->last + 1, x2);
+#else
   ClipRange* start = map_renderer->solidsegs;
   ClipRange* next;
   while (start->last < x1 - 1) {
@@ -218,22 +256,16 @@ crunch:
     *++start = *next;
   }
   map_renderer->newend = start + 1;
+#endif
 }
 
 void map_renderer_draw_vlines(MapRenderer* map_renderer, Segment seg, int x1,
                               int x2) {
-  clip_solid_wall(map_renderer, &seg, x1, x2);
-  // srand(seg.start_vertex + seg.end_vertex);
-  // uint8_t r = rand() % 255;
-  // uint8_t g = rand() % 255;
-  // uint8_t b = rand() % 255;
-  // uint8_t a = 255;
-  // uint32_t color = (a << 24) | (b << 16) | (g << 8) | r;
-  // int16_t height = map_renderer->renderer->image->height - 1;
-  // for (int16_t x = x1; x < x2; ++x) {
-  //   renderer_draw_line(map_renderer->renderer, vec2(x, 0), vec2(x, height),
-  //                      color);
-  // }
+  DoomMap* map = map_renderer->map;
+  LineDef linedef = map->linedefs[seg.linedef];
+  if (linedef.back_sidedef == -1) {
+    clip_solid_wall(map_renderer, &seg, x1, x2);
+  }
 }
 
 void map_renderer_draw_subsector(MapRenderer* map_renderer, int16_t node_id) {
@@ -267,7 +299,9 @@ void map_renderer_draw_segment(MapRenderer* map_renderer, Segment seg) {
   DoomMap* map = map_renderer->map;
   Vec2 v1 = map->vertices[seg.start_vertex];
   Vec2 v2 = map->vertices[seg.end_vertex];
-  srand(seg.start_vertex + seg.end_vertex);
+  LineDef ld = map->linedefs[seg.linedef];
+  char* name = map->sidedefs[ld.front_sidedef].middle_texture;
+  srand(hash(name));
   v1 = vec2_remap_window(v1, map->min_pos, map->max_pos);
   v2 = vec2_remap_window(v2, map->min_pos, map->max_pos);
   uint8_t r = rand() % 255;
@@ -288,16 +322,12 @@ void map_renderer_draw_bsp_node(MapRenderer* map_renderer, int16_t node_id) {
     map_renderer_draw_node(map_renderer, node_id);
   }
   Node* node = &map_renderer->map->nodes[node_id];
-  if (player_is_on_side(map_renderer->player, node)) {
+  if (!player_is_on_side(map_renderer->player, node)) {
     map_renderer_draw_bsp_node(map_renderer, node->left_child);
-    if (map_renderer_check_bbox(map_renderer, node->right)) {
-      map_renderer_draw_bsp_node(map_renderer, node->right_child);
-    }
+    map_renderer_draw_bsp_node(map_renderer, node->right_child);
   } else {
     map_renderer_draw_bsp_node(map_renderer, node->right_child);
-    if (map_renderer_check_bbox(map_renderer, node->left)) {
-      map_renderer_draw_bsp_node(map_renderer, node->left_child);
-    }
+    map_renderer_draw_bsp_node(map_renderer, node->left_child);
   }
 }
 
