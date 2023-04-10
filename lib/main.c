@@ -2,7 +2,6 @@
 #include "engine.h"
 #include "imgui_layer.h"
 #include "map_renderer.h"
-#include <limits.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -12,12 +11,13 @@
 Window* window;
 Config config;
 
-void draw(MapRenderer* map_renderer) {
-  DoomMap* map = map_renderer->map;
-  Player* player = map_renderer->player;
+void draw(Engine* engine) {
+  DoomMap* map = engine->map;
+  Player* player = engine->player;
   config.segments = 0;
 
   if (config.top_view) {
+    MapRenderer* map_renderer = engine->map_renderer;
     map_renderer_draw_map(map_renderer);
 
     if (config.debug_fov) {
@@ -36,15 +36,9 @@ void draw(MapRenderer* map_renderer) {
       renderer_draw_point(map_renderer->renderer, pos, 0xff0000ff);
     }
   } else {
-    map_renderer->solidsegs[0].first = INT_MIN;
-    map_renderer->solidsegs[0].last = -1;
-
-    map_renderer->solidsegs[1].first = map_renderer->renderer->image->width;
-    map_renderer->solidsegs[1].last = INT_MAX;
-
-    map_renderer->newend = map_renderer->solidsegs + 2;
-
-    map_renderer_draw_map(map_renderer);
+    ViewRenderer* vr = engine->vr;
+    vr_init_frame(vr);
+    vr_draw(vr);
   }
 }
 

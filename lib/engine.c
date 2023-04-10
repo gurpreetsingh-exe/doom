@@ -14,16 +14,17 @@ Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height) {
   engine->renderer = renderer_init(image);
   engine->map_renderer =
       map_renderer_init(engine->map, engine->renderer, engine->player);
+  engine->vr = vr_init(engine->map, engine->renderer, engine->player);
 
   return engine;
 }
 
-void engine_tick(Engine* engine, void (*draw)(MapRenderer*),
+void engine_tick(Engine* engine, void (*draw)(Engine*),
                  void (*update)(Player*, Event*)) {
   window_get_size(window);
   renderer_resize(engine->renderer, window->width, window->height);
   update(engine->player, window->event);
-  draw(engine->map_renderer);
+  draw(engine);
   renderer_submit(engine->renderer);
 }
 

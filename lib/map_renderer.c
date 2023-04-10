@@ -21,8 +21,6 @@ MapRenderer* map_renderer_init(DoomMap* map, Renderer* renderer,
   map_renderer->map = map;
   map_renderer->renderer = renderer;
   map_renderer->player = player;
-  map_renderer->solidsegs = malloc(MAXSEGS * sizeof(ClipRange));
-  map_renderer->newend = NULL;
   return map_renderer;
 }
 
@@ -111,36 +109,36 @@ bool map_renderer_check_bbox(MapRenderer* map_renderer, BBox bbox) {
 }
 
 bool map_renderer_add_segment(MapRenderer* map_renderer, Vec2 v0, Vec2 v1,
-                              int* x1, int* x2) {
+                              int* x1, int* x2, float* a0, float* a1) {
   Player* player = map_renderer->player;
-  float a0 = player_angle_to_vec(player, v0);
-  float a1 = player_angle_to_vec(player, v1);
-  float span = norm_angle(a0 - a1);
+  *a0 = player_angle_to_vec(player, v0);
+  *a1 = player_angle_to_vec(player, v1);
+  float span = norm_angle(*a0 - *a1);
   if (span >= 180) {
     return false;
   }
 
-  a0 = a0 - player->angle;
-  a1 = a1 - player->angle;
+  *a0 = *a0 - player->angle;
+  *a1 = *a1 - player->angle;
 
-  float span1 = norm_angle(a0 + HALF_FOV);
+  float span1 = norm_angle(*a0 + HALF_FOV);
   if (span1 > FOV) {
     if (span1 >= span + FOV) {
       return false;
     }
-    a0 = HALF_FOV;
+    *a0 = HALF_FOV;
   }
 
-  float span2 = norm_angle(HALF_FOV - a1);
+  float span2 = norm_angle(HALF_FOV - *a1);
   if (span2 > FOV) {
     if (span2 >= span + FOV) {
       return false;
     }
-    a1 = -HALF_FOV;
+    *a1 = -HALF_FOV;
   }
 
-  *x1 = angle_to_screen(a0);
-  *x2 = angle_to_screen(a1);
+  *x1 = angle_to_screen(*a0);
+  *x2 = angle_to_screen(*a1);
 
   if (*x1 == *x2) {
     return false;
@@ -164,26 +162,9 @@ void map_renderer_draw_map(MapRenderer* map_renderer) {
   map_renderer_draw_bsp_node(map_renderer, map->numnodes - 1);
 }
 
-static void store_wall_range(MapRenderer* map_renderer, Segment* segment,
-                             int x1, int x2) {
-  DoomMap* map = map_renderer->map;
-  LineDef ld = map->linedefs[segment->linedef];
-  char* name = map->sidedefs[ld.front_sidedef].middle_texture;
-  srand(hash(name));
-  uint8_t r = rand() % 255;
-  uint8_t g = rand() % 255;
-  uint8_t b = rand() % 255;
-  uint8_t a = 255;
-  uint32_t color = (a << 24) | (b << 16) | (g << 8) | r;
-  int16_t height = map_renderer->renderer->image->height - 1;
-  for (int16_t x = x1; x <= x2; ++x) {
-    renderer_draw_line(map_renderer->renderer, vec2(x, 0), vec2(x, height),
-                       color);
-  }
-}
-
+#if 0
 void clip_solid_wall(MapRenderer* map_renderer, Segment* segment, int x1,
-                     int x2) {
+                     int x2, float a0, float a1) {
 #if 1
   ClipRange* start;
   start = map_renderer->solidsegs;
@@ -192,23 +173,23 @@ void clip_solid_wall(MapRenderer* map_renderer, Segment* segment, int x1,
   }
   if (x1 < start->first) {
     if (x2 < start->first - 1) {
-      store_wall_range(map_renderer, segment, x1, x2);
+      store_wall_range(map_renderer, segment, x1, x2, a0, a1);
       return;
     }
-    store_wall_range(map_renderer, segment, x1, start->first - 1);
+    store_wall_range(map_renderer, segment, x1, start->first - 1, a0, a1);
   }
   if (x2 <= start->last) {
     return;
   }
   while (x2 >= (start + 1)->first - 1) {
     store_wall_range(map_renderer, segment, start->last + 1,
-                     (start + 1)->first - 1);
+                     (start + 1)->first - 1, a0, a1);
     start++;
     if (x2 <= start->last) {
       return;
     }
   }
-  store_wall_range(map_renderer, segment, start->last + 1, x2);
+  store_wall_range(map_renderer, segment, start->last + 1, x2, a0, a1);
 #else
   ClipRange* start = map_renderer->solidsegs;
   ClipRange* next;
@@ -258,15 +239,7 @@ crunch:
   map_renderer->newend = start + 1;
 #endif
 }
-
-void map_renderer_draw_vlines(MapRenderer* map_renderer, Segment seg, int x1,
-                              int x2) {
-  DoomMap* map = map_renderer->map;
-  LineDef linedef = map->linedefs[seg.linedef];
-  if (linedef.back_sidedef == -1) {
-    clip_solid_wall(map_renderer, &seg, x1, x2);
-  }
-}
+#endif
 
 void map_renderer_draw_subsector(MapRenderer* map_renderer, int16_t node_id) {
   DoomMap* map = map_renderer->map;
@@ -276,20 +249,16 @@ void map_renderer_draw_subsector(MapRenderer* map_renderer, int16_t node_id) {
     Vec2 v1 = map->vertices[seg.start_vertex];
     Vec2 v2 = map->vertices[seg.end_vertex];
     int x = 0, y = 0;
+    float a0 = 0, a1 = 0;
     if (config.top_view) {
       if (config.clip_view) {
-        if (map_renderer_add_segment(map_renderer, v1, v2, &x, &y)) {
+        if (map_renderer_add_segment(map_renderer, v1, v2, &x, &y, &a0, &a1)) {
           config.segments += 1;
           map_renderer_draw_segment(map_renderer, seg);
         }
       } else {
         config.segments += 1;
         map_renderer_draw_segment(map_renderer, seg);
-      }
-    } else {
-      if (map_renderer_add_segment(map_renderer, v1, v2, &x, &y)) {
-        config.segments += 1;
-        map_renderer_draw_vlines(map_renderer, seg, x, y);
       }
     }
   }
@@ -347,7 +316,4 @@ void map_renderer_draw_node(MapRenderer* map_renderer, int16_t node_id) {
   renderer_draw_rect(map_renderer->renderer, v0, v1, 0xff00ff00);
 }
 
-void map_renderer_destroy(MapRenderer* map_renderer) {
-  free(map_renderer->solidsegs);
-  free(map_renderer);
-}
+void map_renderer_destroy(MapRenderer* map_renderer) { free(map_renderer); }

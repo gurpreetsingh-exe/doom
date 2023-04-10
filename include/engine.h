@@ -5,6 +5,7 @@
 #include "map_renderer.h"
 #include "player.h"
 #include "renderer.h"
+#include "view_renderer.h"
 #include "wad.h"
 
 typedef struct {
@@ -13,11 +14,12 @@ typedef struct {
   Player* player;
   Wad* wad;
   MapRenderer* map_renderer;
+  ViewRenderer* vr;
   uint32_t width, height;
 } Engine;
 
 Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height);
-void engine_tick(Engine* engine, void (*draw)(MapRenderer*),
+void engine_tick(Engine* engine, void (*draw)(Engine*),
                  void (*update)(Player*, Event*));
 void engine_destroy(Engine* engine);
 

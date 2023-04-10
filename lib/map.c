@@ -37,6 +37,10 @@ DoomMap* load_map(Wad* wad, char* name) {
   READ_LUMP(Node, map->nodes, lump);
   map->numnodes = lump.size / sizeof(Node);
 
+  lump = WAD_SECTOR(index);
+  READ_LUMP(Sector, map->sectors, lump);
+  map->numsectors = lump.size / sizeof(Sector);
+
   map_calc_bounds(map);
 
   return map;
@@ -60,5 +64,6 @@ void map_destroy(DoomMap* map) {
   free(map->segments);
   free(map->subsectors);
   free(map->nodes);
+  free(map->sectors);
   free(map);
 }

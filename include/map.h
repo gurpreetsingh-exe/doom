@@ -22,6 +22,8 @@ typedef struct {
   uint32_t numsubsectors;
   Node* nodes;
   uint32_t numnodes;
+  Sector* sectors;
+  uint32_t numsectors;
 
   Vec2 min_pos;
   Vec2 max_pos;

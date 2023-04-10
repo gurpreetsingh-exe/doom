@@ -15,6 +15,10 @@ bool player_is_on_side(Player* player, Node* node) {
   return ((dx * node->dy_partition) - (dy * node->dx_partition)) <= 0;
 }
 
+float player_distance_from_point(Player* player, Vec2 p) {
+  return sqrt(pow(player->pos.x - p.x, 2) + pow(player->pos.y - p.y, 2));
+}
+
 float player_angle_to_vec(Player* player, Vec2 v) {
   Vec2 dv = vec2_sub(v, player->pos);
   return norm_angle(DEGREES(atan2f((float)dv.y, (float)dv.x)));

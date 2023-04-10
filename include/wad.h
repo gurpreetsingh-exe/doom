@@ -92,6 +92,16 @@ typedef struct {
 } Node;
 
 typedef struct {
+  int16_t floor_height;
+  int16_t ceiling_height;
+  char floor_texture[8];
+  char ceiling_texture[8];
+  int16_t light_level;
+  int16_t special_type;
+  int16_t tag_num;
+} Sector;
+
+typedef struct {
   uint32_t filepos;
   uint32_t size;
   char name[8];
