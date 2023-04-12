@@ -5,6 +5,7 @@
 #define HEIGHT 400
 #define FOV 90
 #define HALF_FOV 45
+#define EYE_LEVEL 41
 
 #include <stdbool.h>
 

@@ -1,6 +1,7 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include "player.h"
 #include "vec2.h"
 #include "wad.h"
 #include <stdint.h>
@@ -31,6 +32,7 @@ typedef struct {
 
 DoomMap* load_map(Wad* wad, char* name);
 void map_calc_bounds(DoomMap* map);
+int map_get_ssector_height(DoomMap* map, Player* player);
 void map_destroy(DoomMap* map);
 
 #endif // !MAP_H

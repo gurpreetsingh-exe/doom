@@ -56,6 +56,26 @@ void map_calc_bounds(DoomMap* map) {
   }
 }
 
+int map_get_ssector_height(DoomMap* map, Player* player) {
+  int16_t subsec_id = map->numnodes - 1;
+  while (!(subsec_id & SSECTOR_IDENTIFIER)) {
+    Node* node = &map->nodes[subsec_id];
+    if (player_is_on_side(player, node)) {
+      subsec_id = node->left_child;
+    } else {
+      subsec_id = node->right_child;
+    }
+  }
+  subsec_id &= ~SSECTOR_IDENTIFIER;
+  SubSector subsector = map->subsectors[subsec_id];
+  Segment seg = map->segments[subsector.first_seg];
+  int floor =
+      map->sectors[map->sidedefs[map->linedefs[seg.linedef].front_sidedef]
+                       .sector_num]
+          .floor_height;
+  return floor;
+}
+
 void map_destroy(DoomMap* map) {
   free(map->things);
   free(map->linedefs);

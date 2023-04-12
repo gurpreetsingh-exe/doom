@@ -20,7 +20,7 @@ typedef struct {
 
 Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height);
 void engine_tick(Engine* engine, void (*draw)(Engine*),
-                 void (*update)(Player*, Event*));
+                 void (*update)(Engine*, Player*, Event*));
 void engine_destroy(Engine* engine);
 
 #endif // !ENGINE_H

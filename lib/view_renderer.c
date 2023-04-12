@@ -3,6 +3,9 @@
 #include <limits.h>
 #include <stdlib.h>
 
+/// right = front
+/// left = back
+
 extern Window* window;
 
 int hash(char name[8]) {
@@ -25,8 +28,8 @@ ViewRenderer* vr_init(DoomMap* map, Renderer* renderer, Player* player) {
   vr->dist_to_screen = vr->half_width / tanf(RADIANS(HALF_FOV));
   vr->screen_to_angle = malloc(sizeof(float) * (window->width / 2 + 1));
   for (size_t i = 0; i <= window->width / 2; ++i) {
-    vr->screen_to_angle[i] =
-        DEGREES(atan(((float)vr->half_width / i) / (float)vr->dist_to_screen));
+    vr->screen_to_angle[i] = norm_angle(
+        DEGREES(atan(((float)vr->half_width - i) / (float)vr->dist_to_screen)));
   }
   return vr;
 }
@@ -94,38 +97,68 @@ void vr_add_line(ViewRenderer* vr, Vec2 v0, Vec2 v1, Segment* seg) {
 
   DoomMap* map = vr->map;
   LineDef ld = map->linedefs[seg->linedef];
+  /// right = front
+  /// left = back
   if (seg->direction) {
     if (ld.front_sidedef == -1) {
-      vr_clip_solid_wall(vr, seg, x1, x2, a0, a1);
+      goto clipsolid;
     }
   } else {
     if (ld.back_sidedef == -1) {
-      vr_clip_solid_wall(vr, seg, x1, x2, a0, a1);
+      goto clipsolid;
     }
   }
+
+  // if (seg->direction) {
+  //   if (ld.front_sidedef == -1) {
+  //     vr_clip_solid_wall(vr, seg, x1, x2, a0, a1);
+  //   }
+  // } else {
+  //   if (ld.back_sidedef == -1) {
+  //     vr_clip_solid_wall(vr, seg, x1, x2, a0, a1);
+  //   }
+  // }
+
+  Sector* backsector = &map->sectors[map->sidedefs[ld.back_sidedef].sector_num];
+  Sector* frontsector =
+      &map->sectors[map->sidedefs[ld.front_sidedef].sector_num];
+  if (backsector->ceiling_height <= frontsector->floor_height ||
+      backsector->floor_height >= frontsector->ceiling_height) {
+    goto clipsolid;
+  }
+
+  if (backsector->ceiling_height != frontsector->ceiling_height ||
+      backsector->floor_height != frontsector->floor_height) {
+    goto clippass;
+  }
+
+clippass:
+  vr_clip_pass_wall(vr, seg, x1, x2 - 1, a0, a1);
+  return;
+clipsolid:
+  vr_clip_solid_wall(vr, seg, x1, x2 - 1, a0, a1);
+  return;
 }
 
 static void calc_height(ViewRenderer* vr, Segment* segment, int x1,
-                        float dist_to_v, float* ceiling_v_on_screen,
-                        float* floor_v_on_screen) {
+                        float dist_to_v, int* ceiling_v_on_screen,
+                        int* floor_v_on_screen) {
   DoomMap* map = vr->map;
   LineDef ld = map->linedefs[segment->linedef];
   Sector sec;
-  if (segment->direction) {
-    SideDef sd = map->sidedefs[ld.back_sidedef];
-    sec = map->sectors[sd.sector_num];
-  } else {
-    SideDef sd = map->sidedefs[ld.front_sidedef];
-    sec = map->sectors[sd.sector_num];
-  }
+  /// right = front
+  /// left = back
+  SideDef sd = map->sidedefs[ld.front_sidedef];
+  sec = map->sectors[sd.sector_num];
 
-  float ceiling = sec.ceiling_height;
-  float floor = sec.floor_height;
+  int ceiling = sec.ceiling_height - vr->player->z;
+  int floor = sec.floor_height - vr->player->z;
   float screen_angle = vr->screen_to_angle[x1];
   float dist_to_screen = vr->dist_to_screen / cosf(RADIANS(screen_angle));
 
-  *ceiling_v_on_screen = (fabsf(ceiling) * dist_to_screen) / dist_to_v;
-  *floor_v_on_screen = (fabsf(floor) * dist_to_screen) / dist_to_v;
+  *ceiling_v_on_screen = (abs(ceiling) * dist_to_screen) / dist_to_v;
+  *floor_v_on_screen = (abs(floor) * dist_to_screen) / dist_to_v;
+
   if (ceiling > 0) {
     *ceiling_v_on_screen = vr->half_height - *ceiling_v_on_screen;
   } else {
@@ -139,6 +172,26 @@ static void calc_height(ViewRenderer* vr, Segment* segment, int x1,
   }
 }
 
+static void partial_seg(ViewRenderer* vr, Segment* segment, float* a0,
+                        float* a1, float* dist_to_v, bool is_back) {
+  DoomMap* map = vr->map;
+  Vec2 p0 = map->vertices[segment->start_vertex];
+  Vec2 p1 = map->vertices[segment->end_vertex];
+  float sidec = sqrt(pow(p0.x - p1.x, 2) + pow(p0.y - p1.y, 2));
+  float span = *a0 - *a1;
+  float sine_angle = norm_angle(*dist_to_v * sinf(RADIANS(span)) / sidec);
+  float angle_b = norm_angle(DEGREES(asinf(sine_angle)));
+  float angle_a = norm_angle(norm_angle(180 - span) - angle_b);
+  float angle_v_to_fov;
+  if (is_back) {
+    angle_v_to_fov = norm_angle(*a0 - (vr->player->angle + 45));
+  } else {
+    angle_v_to_fov = norm_angle((vr->player->angle - 45) - *a1);
+  }
+  float new_angle = norm_angle(180 - angle_v_to_fov - angle_a);
+  *dist_to_v = *dist_to_v * sinf(RADIANS(angle_a)) / sinf(RADIANS(new_angle));
+}
+
 static void calc_height_simple(ViewRenderer* vr, Segment* segment, int x1,
                                int x2, float a0, float a1) {
   DoomMap* map = vr->map;
@@ -146,14 +199,17 @@ static void calc_height_simple(ViewRenderer* vr, Segment* segment, int x1,
   Vec2 p1 = map->vertices[segment->end_vertex];
   float d_to_p0 = player_distance_from_point(vr->player, p0);
   float d_to_p1 = player_distance_from_point(vr->player, p1);
-  if (x1 <= 0 || x2 >= 319) {
-    return;
+  if (x1 < 0) {
+    partial_seg(vr, segment, &a0, &a1, &d_to_p0, true);
+  }
+  if (x2 >= 320) {
+    partial_seg(vr, segment, &a0, &a1, &d_to_p1, false);
   }
 
-  float ceiling_v1_on_screen;
-  float floor_v1_on_screen;
-  float ceiling_v2_on_screen;
-  float floor_v2_on_screen;
+  int ceiling_v1_on_screen = 0;
+  int floor_v1_on_screen = 0;
+  int ceiling_v2_on_screen = 0;
+  int floor_v2_on_screen = 0;
   calc_height(vr, segment, x1, d_to_p0, &ceiling_v1_on_screen,
               &floor_v1_on_screen);
   calc_height(vr, segment, x2, d_to_p1, &ceiling_v2_on_screen,
@@ -168,6 +224,15 @@ static void calc_height_simple(ViewRenderer* vr, Segment* segment, int x1,
   uint8_t b = rand() % 255;
   uint8_t a = 255;
   uint32_t color = (a << 24) | (b << 16) | (g << 8) | r;
+  if (ceiling_v1_on_screen < 0 || ceiling_v1_on_screen > 199 ||
+      ceiling_v2_on_screen < 0 || ceiling_v2_on_screen > 199) {
+    return;
+  }
+  if (floor_v1_on_screen < 0 || floor_v1_on_screen > 199 ||
+      floor_v2_on_screen < 0 || floor_v2_on_screen > 199) {
+    return;
+  }
+
   renderer_draw_line(renderer, vec2(x1, ceiling_v1_on_screen),
                      vec2(x1, floor_v1_on_screen), color);
   renderer_draw_line(renderer, vec2(x2, ceiling_v2_on_screen),
@@ -183,8 +248,8 @@ static void store_wall_range(ViewRenderer* vr, Segment* segment, int x1, int x2,
   calc_height_simple(vr, segment, x1, x2, a0, a1);
 }
 
-void vr_clip_solid_wall(ViewRenderer* vr, Segment* segment, int x1, int x2,
-                        float a0, float a1) {
+void vr_clip_pass_wall(ViewRenderer* vr, Segment* segment, int x1, int x2,
+                       float a0, float a1) {
   ClipRange* start;
   start = vr->solidsegs;
   while (start->last < x1 - 1) {
@@ -211,6 +276,56 @@ void vr_clip_solid_wall(ViewRenderer* vr, Segment* segment, int x1, int x2,
   store_wall_range(vr, segment, start->last + 1, x2, a0, a1);
 }
 
+void vr_clip_solid_wall(ViewRenderer* vr, Segment* segment, int x1, int x2,
+                        float a0, float a1) {
+  ClipRange* start = vr->solidsegs;
+  ClipRange* next;
+  while (start->last < x1 - 1) {
+    start++;
+  }
+  if (x1 < start->first) {
+    if (x2 < start->first - 1) {
+      store_wall_range(vr, segment, x1, x2, a0, a1);
+      next = vr->newend;
+      vr->newend++;
+      while (next != start) {
+        *next = *(next - 1);
+        next--;
+      }
+      next->first = x1;
+      next->last = x2;
+      return;
+    }
+    store_wall_range(vr, segment, x1, start->first - 1, a0, a1);
+    start->first = x1;
+  }
+
+  if (x2 <= start->last) {
+    return;
+  }
+
+  next = start;
+  while (x2 >= (next + 1)->first - 1) {
+    store_wall_range(vr, segment, next->last + 1, (next + 1)->first - 1, a0,
+                     a1);
+    next++;
+    if (x2 <= next->last) {
+      start->last = next->last;
+      goto crunch;
+    }
+  }
+  store_wall_range(vr, segment, next->last + 1, x2, a0, a1);
+  start->last = x2;
+crunch:
+  if (next == start) {
+    return;
+  }
+  while (next++ != vr->newend) {
+    *++start = *next;
+  }
+  vr->newend = start + 1;
+}
+
 void vr_draw_bsp_node(ViewRenderer* vr, int16_t node_id) {
   if (node_id & SSECTOR_IDENTIFIER) {
     vr_draw_subsector(vr, node_id & (~SSECTOR_IDENTIFIER));
@@ -218,7 +333,7 @@ void vr_draw_bsp_node(ViewRenderer* vr, int16_t node_id) {
   }
 
   Node* node = &vr->map->nodes[node_id];
-  if (!player_is_on_side(vr->player, node)) {
+  if (player_is_on_side(vr->player, node)) {
     vr_draw_bsp_node(vr, node->left_child);
     vr_draw_bsp_node(vr, node->right_child);
   } else {

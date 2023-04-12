@@ -20,7 +20,7 @@ void renderer_draw_line(Renderer* renderer, Vec2 v0, Vec2 v1, uint32_t color) {
   int err = (dx > dy ? dx : -dy) / 2, e2;
 
   for (;;) {
-    renderer->image->data[x0 + y0 * renderer->image->width] = color;
+    renderer->image->data[x0 + (renderer->image->height - y0 - 1) * renderer->image->width] = color;
     if (x0 == x1 && y0 == y1) {
       break;
     }

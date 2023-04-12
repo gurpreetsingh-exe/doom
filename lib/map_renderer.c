@@ -291,7 +291,7 @@ void map_renderer_draw_bsp_node(MapRenderer* map_renderer, int16_t node_id) {
     map_renderer_draw_node(map_renderer, node_id);
   }
   Node* node = &map_renderer->map->nodes[node_id];
-  if (!player_is_on_side(map_renderer->player, node)) {
+  if (player_is_on_side(map_renderer->player, node)) {
     map_renderer_draw_bsp_node(map_renderer, node->left_child);
     map_renderer_draw_bsp_node(map_renderer, node->right_child);
   } else {

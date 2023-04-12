@@ -31,6 +31,8 @@ void vr_draw(ViewRenderer* vr);
 void vr_draw_bsp_node(ViewRenderer* vr, int16_t node_id);
 void vr_draw_subsector(ViewRenderer* vr, int16_t node_id);
 void vr_add_line(ViewRenderer* vr, Vec2 v0, Vec2 v1, Segment* seg);
+void vr_clip_pass_wall(ViewRenderer* vr, Segment* segment, int x1, int x2,
+                       float a0, float a1);
 void vr_clip_solid_wall(ViewRenderer* vr, Segment* segment, int x1, int x2,
                         float a0, float a1);
 void vr_destroy(ViewRenderer* vr);

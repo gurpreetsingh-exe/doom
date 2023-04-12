@@ -1,4 +1,5 @@
 #include "player.h"
+#include "config.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -6,6 +7,7 @@ Player* player_init(Thing thing) {
   Player* player = (Player*)malloc(sizeof(Player));
   player->pos = (Vec2){.x = thing.x, .y = thing.y};
   player->angle = thing.angle;
+  player->z = EYE_LEVEL;
   return player;
 }
 

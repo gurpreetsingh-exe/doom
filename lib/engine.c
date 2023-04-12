@@ -20,10 +20,10 @@ Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height) {
 }
 
 void engine_tick(Engine* engine, void (*draw)(Engine*),
-                 void (*update)(Player*, Event*)) {
+                 void (*update)(Engine*, Player*, Event*)) {
   window_get_size(window);
   renderer_resize(engine->renderer, window->width, window->height);
-  update(engine->player, window->event);
+  update(engine, engine->player, window->event);
   draw(engine);
   renderer_submit(engine->renderer);
 }

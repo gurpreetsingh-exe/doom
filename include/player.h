@@ -7,6 +7,7 @@
 typedef struct {
   Vec2 pos;
   float angle;
+  int z;
 } Player;
 
 Player* player_init(Thing thing);

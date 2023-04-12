@@ -42,7 +42,7 @@ void draw(Engine* engine) {
   }
 }
 
-void update(Player* player, Event* event) {
+void update(Engine* engine, Player* player, Event* event) {
   float speed = event->delta_time * 0.4;
   float rot_speed = event->delta_time * 0.1;
 
@@ -68,6 +68,7 @@ void update(Player* player, Event* event) {
   }
   inc = rotate(inc, player->angle);
   player->pos = vec2_add(player->pos, inc);
+  player->z = EYE_LEVEL + map_get_ssector_height(engine->map, player);
 }
 
 int main() {
