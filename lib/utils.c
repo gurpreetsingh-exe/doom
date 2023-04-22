@@ -25,15 +25,14 @@ float norm_angle(float angle) {
 }
 
 int angle_to_screen(float angle) {
-  // int hw = ((window->width / 2) / 2) - 1;
-  int hw = window->width / 4;
+  int hw = window->width / 2;
   float screen_dist = hw / tanf(RADIANS(HALF_FOV));
   float x = 0;
 #if 1
   if (angle > 0) {
     x = screen_dist - tanf(RADIANS(angle)) * hw;
   } else {
-    x = -tan(RADIANS(angle)) * hw + screen_dist;
+    x = -tanf(RADIANS(angle)) * hw + screen_dist;
   }
 #else
   if (angle > 90) {

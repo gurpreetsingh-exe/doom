@@ -1,6 +1,7 @@
 #ifndef WAD_H
 #define WAD_H
 
+#include "vec2.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -118,6 +119,45 @@ typedef struct {
   WadInfo wadinfo;
   Lump* lumps;
 } Wad;
+
+typedef struct {
+  int16_t x_offset;
+  int16_t y_offset;
+  char upper_texture[8];
+  char lower_texture[8];
+  char middle_texture[8];
+  int16_t sector_num;
+
+  Sector* sector;
+} SideDef_t;
+
+typedef struct {
+  int16_t start_vertex;
+  int16_t end_vertex;
+  int16_t flags;
+  int16_t special_type;
+  int16_t sector_tag;
+  int16_t front_sidedef_id;
+  int16_t back_sidedef_id;
+
+  SideDef_t* front_sidedef;
+  SideDef_t* back_sidedef;
+} LineDef_t;
+
+typedef struct {
+  int16_t start_vertex_id;
+  int16_t end_vertex_id;
+  int16_t angle;
+  int16_t linedef_id;
+  int16_t direction; // 0 (same as linedef) or 1 (opposite of linedef)
+  int16_t offset;    // distance along linedef to start of seg
+
+  Vec2* start_vertex;
+  Vec2* end_vertex;
+  LineDef_t* linedef;
+  Sector* front_sector;
+  Sector* back_sector;
+} Segment_t;
 
 Wad* load_wad(const char* path);
 size_t wad_get_map_index(Wad* wad, const char* map_name);

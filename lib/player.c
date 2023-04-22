@@ -18,12 +18,12 @@ bool player_is_on_side(Player* player, Node* node) {
 }
 
 float player_distance_from_point(Player* player, Vec2 p) {
-  return sqrt(pow(player->pos.x - p.x, 2) + pow(player->pos.y - p.y, 2));
+  return sqrtf(powf(player->pos.x - p.x, 2) + powf(player->pos.y - p.y, 2));
 }
 
 float player_angle_to_vec(Player* player, Vec2 v) {
   Vec2 dv = vec2_sub(v, player->pos);
-  return norm_angle(DEGREES(atan2f((float)dv.y, (float)dv.x)));
+  return DEGREES(atan2f(dv.y, dv.x));
 }
 
 void player_destroy(Player* player) { free(player); }

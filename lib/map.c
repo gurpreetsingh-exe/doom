@@ -41,6 +41,51 @@ DoomMap* load_map(Wad* wad, char* name) {
   READ_LUMP(Sector, map->sectors, lump);
   map->numsectors = lump.size / sizeof(Sector);
 
+  map->sidedefs_t = malloc(sizeof(SideDef_t) * map->numsidedefs);
+  for (int i = 0; i < map->numsidedefs; ++i) {
+    SideDef_t* sd = &map->sidedefs_t[i];
+    memcpy(sd, &map->sidedefs[i], sizeof(SideDef));
+    sd->sector = &map->sectors[sd->sector_num];
+  }
+
+  map->linedefs_t = malloc(sizeof(LineDef_t) * map->numlinedefs);
+  for (int i = 0; i < map->numlinedefs; ++i) {
+    LineDef_t* ld = &map->linedefs_t[i];
+    memcpy(ld, &map->linedefs[i], sizeof(LineDef));
+    ld->front_sidedef = &map->sidedefs_t[ld->front_sidedef_id];
+    if (ld->back_sidedef_id == -1) {
+      ld->back_sidedef = NULL;
+    } else {
+      ld->back_sidedef = &map->sidedefs_t[ld->back_sidedef_id];
+    }
+  }
+
+  map->segments_t = malloc(sizeof(Segment_t) * map->numsegments);
+  for (int i = 0; i < map->numsegments; ++i) {
+    Segment_t* seg = &map->segments_t[i];
+    memcpy(seg, &map->segments[i], sizeof(Segment));
+    seg->start_vertex = &map->vertices[seg->start_vertex_id];
+    seg->end_vertex = &map->vertices[seg->end_vertex_id];
+    seg->linedef = &map->linedefs_t[seg->linedef_id];
+    SideDef_t* front;
+    SideDef_t* back;
+    if (seg->direction) {
+      front = seg->linedef->back_sidedef;
+      back = seg->linedef->front_sidedef;
+    } else {
+      front = seg->linedef->front_sidedef;
+      back = seg->linedef->back_sidedef;
+    }
+    seg->front_sector = front->sector;
+    if (4 & seg->linedef->flags) {
+      seg->back_sector = back->sector;
+    } else {
+      seg->back_sector = NULL;
+    }
+    seg->angle = (seg->angle << 16) * 8.38190317e-8;
+    seg->angle = seg->angle < 0 ? seg->angle + 360 : seg->angle;
+  }
+
   map_calc_bounds(map);
 
   return map;

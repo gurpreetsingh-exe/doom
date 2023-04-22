@@ -1,11 +1,13 @@
 #ifndef VIEW_RENDERER_H
 #define VIEW_RENDERER_H
 
+#include "khash.h"
 #include "map.h"
 #include "player.h"
 #include "renderer.h"
 
 #define MAXSEGS 32
+KHASH_SET_INIT_INT(f32)
 
 typedef struct {
   int first;
@@ -20,6 +22,8 @@ typedef struct {
   uint32_t half_height;
   uint32_t dist_to_screen;
   float* screen_to_angle;
+  kh_f32_t* screen_range;
+  bool bsp_traverse;
 
   ClipRange* newend;
   ClipRange* solidsegs;
@@ -30,11 +34,11 @@ void vr_init_frame(ViewRenderer* vr);
 void vr_draw(ViewRenderer* vr);
 void vr_draw_bsp_node(ViewRenderer* vr, int16_t node_id);
 void vr_draw_subsector(ViewRenderer* vr, int16_t node_id);
-void vr_add_line(ViewRenderer* vr, Vec2 v0, Vec2 v1, Segment* seg);
-void vr_clip_pass_wall(ViewRenderer* vr, Segment* segment, int x1, int x2,
-                       float a0, float a1);
-void vr_clip_solid_wall(ViewRenderer* vr, Segment* segment, int x1, int x2,
-                        float a0, float a1);
+void vr_add_line(ViewRenderer* vr, Segment_t* seg);
+void vr_clip_pass_wall(ViewRenderer* vr, Segment_t* segment, int x1, int x2,
+                       float rw_angle);
+void vr_clip_solid_wall(ViewRenderer* vr, Segment_t* segment, int x1, int x2,
+                        float rw_angle);
 void vr_destroy(ViewRenderer* vr);
 
 #endif // !VIEW_RENDERER_H

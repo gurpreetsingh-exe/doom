@@ -26,6 +26,10 @@ typedef struct {
   Sector* sectors;
   uint32_t numsectors;
 
+  LineDef_t* linedefs_t;
+  SideDef_t* sidedefs_t;
+  Segment_t* segments_t;
+
   Vec2 min_pos;
   Vec2 max_pos;
 } DoomMap;

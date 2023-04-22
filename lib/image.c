@@ -5,7 +5,7 @@ Image* image_init(uint32_t width, uint32_t height) {
   Image* image = (Image*)malloc(sizeof(Image));
   image->width = width;
   image->height = height;
-  image->upscale = 2;
+  image->upscale = 1;
   image->data = (uint32_t*)calloc(sizeof(uint32_t), width * height);
 
   glGenTextures(1, &image->id);
