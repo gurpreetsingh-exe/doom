@@ -12,6 +12,7 @@ typedef struct {
 
 Renderer* renderer_init(Image* image);
 void renderer_draw_line(Renderer* renderer, Vec2 v0, Vec2 v1, uint32_t color);
+void renderer_line(Renderer* renderer, int x, int y1, int y2, uint32_t color);
 void renderer_draw_rect(Renderer* renderer, Vec2 p0, Vec2 p1, uint32_t color);
 void renderer_destroy(Renderer* renderer);
 

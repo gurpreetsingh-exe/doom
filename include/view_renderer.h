@@ -7,7 +7,6 @@
 #include "renderer.h"
 
 #define MAXSEGS 32
-KHASH_SET_INIT_INT(f32)
 
 typedef struct {
   int first;
@@ -22,8 +21,10 @@ typedef struct {
   uint32_t half_height;
   uint32_t dist_to_screen;
   float* screen_to_angle;
-  kh_f32_t* screen_range;
+  float* screen_range;
   bool bsp_traverse;
+  float* upper_clip;
+  float* lower_clip;
 
   ClipRange* newend;
   ClipRange* solidsegs;

@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "image.h"
+#include "utils.h"
 #include "wad.h"
 #include <stdlib.h>
 
@@ -38,6 +39,32 @@ void renderer_draw_line(Renderer* renderer, Vec2 v0, Vec2 v1, uint32_t color) {
       err += dx;
       y0 += sy;
     }
+  }
+}
+
+void renderer_line(Renderer* renderer, int x, int y1, int y2, uint32_t color) {
+  Image* image = renderer->image;
+
+  if (y1 < 0) {
+    y1 = 0;
+  }
+  if (y1 > renderer->image->height - 1) {
+    y1 = renderer->image->height - 1;
+  }
+  if (y2 < 0) {
+    y2 = 0;
+  }
+  if (y2 > renderer->image->height - 1) {
+    y2 = renderer->image->height - 1;
+  }
+  if (x < 0 || x > renderer->image->width) {
+    return;
+  }
+
+  int a = MIN(y1, y2);
+  int b = MAX(y1, y2);
+  for (int y = a; y <= b; ++y) {
+    renderer->image->data[x + (image->height - y - 1) * image->width] = color;
   }
 }
 

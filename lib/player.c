@@ -22,8 +22,9 @@ float player_distance_from_point(Player* player, Vec2 p) {
 }
 
 float player_angle_to_vec(Player* player, Vec2 v) {
-  Vec2 dv = vec2_sub(v, player->pos);
-  return DEGREES(atan2f(dv.y, dv.x));
+  // Vec2 dv = vec2_sub(v, player->pos);
+  // return DEGREES(atan2f(dv.y, dv.x));
+  return DEGREES(atan2f(v.y - player->pos.y, v.x - player->pos.x));
 }
 
 void player_destroy(Player* player) { free(player); }
