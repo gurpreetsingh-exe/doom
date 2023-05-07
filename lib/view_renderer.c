@@ -3,16 +3,24 @@
 #include <limits.h>
 #include <stdlib.h>
 
+#define DBG 1
+
+KHASH_MAP_INIT_STR(col, uint32_t);
+
 extern Window* window;
 extern Config config;
 
-int hash(char name[8]) {
+static kh_col_t* color;
+
+int hash(char* name) {
   int hash = 0;
-  for (int i = 0; i < 7; ++i) {
+  for (int i = 0; i < 8; ++i) {
     hash += (hash << 5) + name[i];
   }
   return hash;
 }
+
+static bool eq(char* a, char* b, int sz) { return strncmp(a, b, sz) == 0; }
 
 ViewRenderer* vr_init(DoomMap* map, Renderer* renderer, Player* player) {
   ViewRenderer* vr = malloc(sizeof(ViewRenderer));
@@ -29,6 +37,7 @@ ViewRenderer* vr_init(DoomMap* map, Renderer* renderer, Player* player) {
 
   vr->upper_clip = malloc(sizeof(float) * window->width);
   vr->lower_clip = malloc(sizeof(float) * window->width);
+  color = kh_init(col);
 
   for (size_t i = 0; i <= window->width; ++i) {
     vr->screen_to_angle[i] =
@@ -100,32 +109,38 @@ void vr_add_line(ViewRenderer* vr, Segment_t* seg) {
 
   int x1 = angle_to_screen(a0);
   int x2 = angle_to_screen(a1);
-
-  LineDef_t* ld = seg->linedef;
-  if (ld->back_sidedef == NULL) {
-    goto clipsolid;
-  }
-
   Sector* backsector = seg->back_sector;
   Sector* frontsector = seg->front_sector;
 
+  if (backsector == NULL) {
+    // goto clipsolid;
+    vr_clip_solid_wall(vr, seg, x1, x2 - 1, rw_angle);
+    return;
+  }
+
   if (backsector->ceiling_height <= frontsector->floor_height ||
       backsector->floor_height >= frontsector->ceiling_height) {
-    goto clipsolid;
+    // goto clipsolid;
+    vr_clip_solid_wall(vr, seg, x1, x2 - 1, rw_angle);
+    return;
   }
 
   if (backsector->ceiling_height != frontsector->ceiling_height ||
       backsector->floor_height != frontsector->floor_height) {
-    goto clippass;
+    // goto clippass;
+    vr_clip_pass_wall(vr, seg, x1, x2 - 1, rw_angle);
+    return;
   }
 
-  // if (memcmp(backsector->ceiling_texture, frontsector->ceiling_texture, 8) ==
-  //         0 &&
-  //     memcmp(backsector->floor_texture, frontsector->floor_texture, 8) == 0
-  //     && backsector->light_level == frontsector->light_level &&
+  // if (eq(backsector->ceiling_texture, frontsector->ceiling_texture, 8) &&
+  //     eq(backsector->floor_texture, frontsector->floor_texture, 8) &&
+  //     backsector->light_level == frontsector->light_level &&
   //     seg->linedef->front_sidedef->middle_texture[0] == '-') {
   //   return;
   // }
+
+  vr_clip_pass_wall(vr, seg, x1, x2 - 1, rw_angle);
+  return;
 
 clippass:
   config.segments += 1;
@@ -137,102 +152,92 @@ clipsolid:
   return;
 }
 
-// static void calc_height(ViewRenderer* vr, Segment_t* segment, int x1,
-//                         float dist_to_v, int* ceiling_v_on_screen,
-//                         int* floor_v_on_screen) {
-//   Sector* sec = segment->linedef->front_sidedef->sector;
-//
-//   int ceiling = sec->ceiling_height - vr->player->z;
-//   int floor = sec->floor_height - vr->player->z;
-//   float screen_angle = vr->screen_to_angle[x1];
-//   float dist_to_screen = vr->dist_to_screen / cosf(RADIANS(screen_angle));
-//
-//   *ceiling_v_on_screen = (abs(ceiling) * dist_to_screen) / dist_to_v;
-//   *floor_v_on_screen = (abs(floor) * dist_to_screen) / dist_to_v;
-//
-//   if (ceiling > 0) {
-//     *ceiling_v_on_screen = vr->half_height - *ceiling_v_on_screen;
-//   } else {
-//     *ceiling_v_on_screen += vr->half_height;
-//   }
-//
-//   if (floor > 0) {
-//     *floor_v_on_screen = vr->half_height - *floor_v_on_screen;
-//   } else {
-//     *floor_v_on_screen += vr->half_height;
-//   }
-// }
-//
-// static void partial_seg(ViewRenderer* vr, Segment_t* segment, float* a0,
-//                         float* a1, float* dist_to_v, bool is_back) {
-//   Vec2 p0 = *(segment->start_vertex);
-//   Vec2 p1 = *(segment->end_vertex);
-//   float sidec = sqrt(pow(p0.x - p1.x, 2) + pow(p0.y - p1.y, 2));
-//   float span = *a0 - *a1;
-//   float sine_angle = norm_angle(*dist_to_v * sinf(RADIANS(span)) / sidec);
-//   float angle_b = norm_angle(DEGREES(asinf(sine_angle)));
-//   float angle_a = norm_angle(norm_angle(180 - span) - angle_b);
-//   float angle_v_to_fov;
-//   if (is_back) {
-//     angle_v_to_fov = norm_angle(*a0 - (vr->player->angle + 45));
-//   } else {
-//     angle_v_to_fov = norm_angle((vr->player->angle - 45) - *a1);
-//   }
-//   float new_angle = norm_angle(180 - angle_v_to_fov - angle_a);
-//   *dist_to_v = *dist_to_v * sinf(RADIANS(angle_a)) /
-//   sinf(RADIANS(new_angle));
-// }
-//
-// static void calc_height_simple(ViewRenderer* vr, Segment_t* segment, int x1,
-//                                int x2, float a0, float a1) {
-//   return;
-//   Vec2 p0 = *(segment->start_vertex);
-//   Vec2 p1 = *(segment->end_vertex);
-//   float d_to_p0 = player_distance_from_point(vr->player, p0);
-//   float d_to_p1 = player_distance_from_point(vr->player, p1);
-//   if (x1 < 0) {
-//     partial_seg(vr, segment, &a0, &a1, &d_to_p0, true);
-//   }
-//   if (x2 >= 319) {
-//     partial_seg(vr, segment, &a0, &a1, &d_to_p1, false);
-//   }
-//
-//   int ceiling_v1_on_screen = 0;
-//   int floor_v1_on_screen = 0;
-//   int ceiling_v2_on_screen = 0;
-//   int floor_v2_on_screen = 0;
-//   calc_height(vr, segment, x1, d_to_p0, &ceiling_v1_on_screen,
-//               &floor_v1_on_screen);
-//   calc_height(vr, segment, x2, d_to_p1, &ceiling_v2_on_screen,
-//               &floor_v2_on_screen);
-//
-//   Renderer* renderer = vr->renderer;
-//   LineDef_t* ld = segment->linedef;
-//   char* name = ld->front_sidedef->middle_texture;
-//   srand(hash(name));
-//   uint8_t r = rand() % 255;
-//   uint8_t g = rand() % 255;
-//   uint8_t b = rand() % 255;
-//   uint8_t a = 255;
-//   uint32_t color = (a << 24) | (b << 16) | (g << 8) | r;
-//   if (ceiling_v1_on_screen < 0 || ceiling_v1_on_screen > 199 ||
-//       ceiling_v2_on_screen < 0 || ceiling_v2_on_screen > 199) {
-//     return;
-//   }
-//   if (floor_v1_on_screen < 0 || floor_v1_on_screen > 199 ||
-//       floor_v2_on_screen < 0 || floor_v2_on_screen > 199) {
-//     return;
-//   }
-//
-//   renderer_draw_line(renderer, vec2(x1, ceiling_v1_on_screen),
-//                      vec2(x1, floor_v1_on_screen), color);
-//   renderer_draw_line(renderer, vec2(x2, ceiling_v2_on_screen),
-//                      vec2(x2, floor_v2_on_screen), color);
-//   renderer_draw_line(renderer, vec2(x1, ceiling_v1_on_screen),
-//                      vec2(x2, ceiling_v2_on_screen), color);
-//   renderer_draw_line(renderer, vec2(x1, floor_v1_on_screen),
-//                      vec2(x2, floor_v2_on_screen), color);
-// }
+static void calc_height(ViewRenderer* vr, Segment_t* segment, int x1,
+                        float dist_to_v, int* ceiling_v_on_screen,
+                        int* floor_v_on_screen) {
+  Sector* sec = segment->linedef->front_sidedef->sector;
+
+  int ceiling = sec->ceiling_height - vr->player->z;
+  int floor = sec->floor_height - vr->player->z;
+  float screen_angle = vr->screen_to_angle[x1];
+  float dist_to_screen = vr->dist_to_screen / cosf(RADIANS(screen_angle));
+
+  *ceiling_v_on_screen = (abs(ceiling) * dist_to_screen) / dist_to_v;
+  *floor_v_on_screen = (abs(floor) * dist_to_screen) / dist_to_v;
+
+  if (ceiling > 0) {
+    *ceiling_v_on_screen = vr->half_height - *ceiling_v_on_screen;
+  } else {
+    *ceiling_v_on_screen += vr->half_height;
+  }
+
+  if (floor > 0) {
+    *floor_v_on_screen = vr->half_height - *floor_v_on_screen;
+  } else {
+    *floor_v_on_screen += vr->half_height;
+  }
+}
+
+static void partial_seg(ViewRenderer* vr, Segment_t* segment, float* a0,
+                        float* a1, float* dist_to_v, bool is_back) {
+  Vec2 p0 = *(segment->start_vertex);
+  Vec2 p1 = *(segment->end_vertex);
+  float sidec = sqrt(pow(p0.x - p1.x, 2) + pow(p0.y - p1.y, 2));
+  float span = norm_angle(*a0 - *a1);
+  float sine_angle = norm_angle(*dist_to_v * sinf(RADIANS(span)) / sidec);
+  float angle_b = norm_angle(DEGREES(asinf(sine_angle)));
+  float angle_a = norm_angle(norm_angle(180 - span) - angle_b);
+  float angle_v_to_fov;
+  if (is_back) {
+    angle_v_to_fov = norm_angle(*a0 - (vr->player->angle + 45));
+  } else {
+    angle_v_to_fov = norm_angle((vr->player->angle - 45) - *a1);
+  }
+  float new_angle = norm_angle(180 - angle_v_to_fov - angle_a);
+  *dist_to_v = *dist_to_v * sinf(RADIANS(angle_a)) / sinf(RADIANS(new_angle));
+}
+
+static void calc_height_simple(ViewRenderer* vr, Segment_t* segment, int x1,
+                               int x2, float a0, float a1) {
+  // return;
+  Vec2 p0 = *(segment->start_vertex);
+  Vec2 p1 = *(segment->end_vertex);
+  float d_to_p0 = player_distance_from_point(vr->player, p0);
+  float d_to_p1 = player_distance_from_point(vr->player, p1);
+  if (x1 <= 0) {
+    partial_seg(vr, segment, &a0, &a1, &d_to_p0, true);
+  }
+  if (x2 >= 319) {
+    partial_seg(vr, segment, &a0, &a1, &d_to_p1, false);
+  }
+
+  int ceiling_v1_on_screen = 0;
+  int floor_v1_on_screen = 0;
+  int ceiling_v2_on_screen = 0;
+  int floor_v2_on_screen = 0;
+  calc_height(vr, segment, x1, d_to_p0, &ceiling_v1_on_screen,
+              &floor_v1_on_screen);
+  calc_height(vr, segment, x2, d_to_p1, &ceiling_v2_on_screen,
+              &floor_v2_on_screen);
+
+  Renderer* renderer = vr->renderer;
+  LineDef_t* ld = segment->linedef;
+  char* name = ld->front_sidedef->middle_texture;
+  uint8_t r = rand() % 255;
+  uint8_t g = rand() % 255;
+  uint8_t b = rand() % 255;
+  uint8_t a = 255;
+  uint32_t color = (a << 24) | (b << 16) | (g << 8) | r;
+
+  renderer_draw_line(renderer, vec2(x1, ceiling_v1_on_screen),
+                     vec2(x1, floor_v1_on_screen), color);
+  renderer_draw_line(renderer, vec2(x2, ceiling_v2_on_screen),
+                     vec2(x2, floor_v2_on_screen), color);
+  renderer_draw_line(renderer, vec2(x1, ceiling_v1_on_screen),
+                     vec2(x2, ceiling_v2_on_screen), color);
+  renderer_draw_line(renderer, vec2(x1, floor_v1_on_screen),
+                     vec2(x2, floor_v2_on_screen), color);
+}
 
 static float scale_factor(ViewRenderer* vr, int x, float angle, float dist) {
   float a = vr->screen_to_angle[x];
@@ -243,18 +248,79 @@ static float scale_factor(ViewRenderer* vr, int x, float angle, float dist) {
   return scale;
 }
 
-static uint32_t get_color(char* id) {
-  char* name = id;
-  srand(hash(name));
-  uint8_t r = rand() % 255;
-  uint8_t g = rand() % 255;
-  uint8_t b = rand() % 255;
+static uint32_t get_color(char* id, int light_level) {
+#if 0
+  char key[32] = {0};
+  sprintf(key, "%s%d", id, light_level);
+  khint_t k = kh_get(col, color, key);
+  if (k == kh_end(color)) {
+    srand(hash(id));
+    int absent;
+    khint_t k = kh_put(col, color, key, &absent);
+    // light_level /= 255;
+    uint8_t r = (rand() % 255) * light_level;
+    uint8_t g = (rand() % 255) * light_level;
+    uint8_t b = (rand() % 255) * light_level;
+    uint8_t a = 255;
+    uint32_t _c = (a << 24) | (b << 16) | (g << 8) | r;
+    kh_value(color, k) = _c;
+    return _c;
+  }
+  return kh_value(color, k);
+#else
+  srand(hash(id));
+  uint8_t r = (rand() % 255) * light_level;
+  uint8_t g = (rand() % 255) * light_level;
+  uint8_t b = (rand() % 255) * light_level;
   uint8_t a = 255;
   return (a << 24) | (b << 16) | (g << 8) | r;
+#endif
+}
+
+static void store_wall_range(ViewRenderer* vr, Segment_t* segment, int x1,
+                             int x2, float rw_angle) {
+
+  Sector* front = segment->front_sector;
+  Sector* back = segment->back_sector;
+  LineDef_t* ld = segment->linedef;
+  SideDef_t* sd = ld->front_sidedef;
+
+  float rw_normal_angle = segment->angle + 90;
+  float off_angle = fabsf(rw_normal_angle - rw_angle);
+  if (off_angle > 90) {
+    off_angle = 90;
+  }
+
+  float distance = 90 - off_angle;
+  float hyp = player_distance_from_point(vr->player, *segment->start_vertex);
+  float rw_dist = distance * sinf(RADIANS(distance));
+  float rw_scale_step;
+
+  float rw_scale1 = scale_factor(vr, x1, rw_normal_angle, rw_dist);
+  if (x2 > x1) {
+    float rw_scale2 = scale_factor(vr, x2, rw_normal_angle, rw_dist);
+    rw_scale_step = (rw_scale2 - rw_scale1) / (x2 - x1);
+  } else {
+    rw_scale_step = 0;
+  }
+
+  float worldtop = front->ceiling_height - vr->player->z;
+  float worldbottom = front->floor_height - vr->player->z;
+  char* midtexture = 0;
+  char* toptexture = 0;
+  char* bottomtexture = 0;
+  char* maskedtexture = 0;
+
+  bool markfloor, markceiling;
+  if (!back) {
+    midtexture = sd->middle_texture;
+    markfloor = markceiling = true;
+  }
 }
 
 static void store_portal_wall_range(ViewRenderer* vr, Segment_t* segment,
                                     int x1, int x2, float rw_angle) {
+#if DBG
   Sector* front = segment->front_sector;
   Sector* back = segment->back_sector;
   LineDef_t* ld = segment->linedef;
@@ -269,27 +335,41 @@ static void store_portal_wall_range(ViewRenderer* vr, Segment_t* segment,
   int world_back_z1 = back->ceiling_height - vr->player->z;
   int world_front_z2 = front->floor_height - vr->player->z;
   int world_back_z2 = back->floor_height - vr->player->z;
+  int light_level = front->light_level;
 
-  bool b_draw_upper_wall;
-  bool b_draw_ceil;
+  bool b_draw_upper_wall = false;
+  bool b_draw_ceil = true;
   if (world_front_z1 != world_back_z1 ||
       front->light_level != back->light_level ||
-      memcmp(front->ceiling_texture, back->ceiling_texture, 8) != 0) {
-    b_draw_upper_wall =
-        sd->upper_texture[0] != '-' && world_back_z1 < world_front_z1;
+      !eq(front->ceiling_texture, back->ceiling_texture, 8)) {
+    // b_draw_upper_wall = sd->upper_texture[0] != '-';
+    // b_draw_upper_wall = world_back_z1 < world_front_z1;
     b_draw_ceil = world_front_z1 >= 0;
   } else {
     b_draw_upper_wall = false;
     b_draw_ceil = false;
   }
 
-  bool b_draw_lower_wall;
-  bool b_draw_floor;
+  // bool b_draw_upper_wall = false;
+  // bool b_draw_ceil = true;
+  // if (world_front_z1 != world_back_z1 ||
+  //     front->light_level != back->light_level ||
+  //     !eq(front->ceiling_texture, back->ceiling_texture, 8)) {
+  //   // b_draw_upper_wall =
+  //   //     sd->upper_texture[0] != '-' && world_back_z1 < world_front_z1;
+  //   b_draw_ceil = world_front_z1 >= 0;
+  // } else {
+  //   b_draw_ceil = false;
+  // }
+
+  bool b_draw_lower_wall = false;
+  bool b_draw_floor = false;
   if (world_front_z2 != world_back_z2 ||
       front->light_level != back->light_level ||
-      memcmp(front->floor_texture, back->floor_texture, 8) != 0) {
+      !eq(front->floor_texture, back->floor_texture, 8)) {
     b_draw_lower_wall =
         sd->lower_texture[0] != '-' && world_back_z2 > world_front_z2;
+    // b_draw_lower_wall = world_back_z2 > world_front_z2;
     b_draw_floor = world_front_z2 <= 0;
   } else {
     b_draw_lower_wall = false;
@@ -311,8 +391,6 @@ static void store_portal_wall_range(ViewRenderer* vr, Segment_t* segment,
   if (x1 < x2) {
     float scale2 = scale_factor(vr, x2, angle, rw_dist);
     rw_scale_step = (scale2 - rw_scale1) / (x2 - x1);
-  } else {
-    rw_scale_step = 0;
   }
 
   float wall_y1 = vr->half_height - world_front_z1 * rw_scale1;
@@ -322,15 +400,15 @@ static void store_portal_wall_range(ViewRenderer* vr, Segment_t* segment,
   float wall_y2_step = -rw_scale_step * world_front_z2;
 
   float portal_y1, portal_y1_step;
-  if (b_draw_upper_wall) {
-    if (world_back_z1 > world_front_z2) {
-      portal_y1 = vr->half_height - world_back_z1 * rw_scale1;
-      portal_y1_step = -rw_scale_step * world_back_z1;
-    } else {
-      portal_y1 = wall_y2;
-      portal_y1_step = wall_y2_step;
-    }
-  }
+  // if (b_draw_upper_wall) {
+  //   if (world_back_z1 > world_front_z2) {
+  //     portal_y1 = vr->half_height - world_back_z1 * rw_scale1;
+  //     portal_y1_step = -rw_scale_step * world_back_z1;
+  //   } else {
+  //     portal_y1 = wall_y2;
+  //     portal_y1_step = wall_y2_step;
+  //   }
+  // }
 
   float portal_y2, portal_y2_step;
   if (b_draw_lower_wall) {
@@ -343,33 +421,37 @@ static void store_portal_wall_range(ViewRenderer* vr, Segment_t* segment,
     }
   }
 
+  uint32_t c0 = get_color(tex_ceil_id, light_level);
+  uint32_t c1 = get_color(upper_wall_texture, light_level);
+  uint32_t c2 = get_color(tex_floor_id, light_level);
+  uint32_t c3 = get_color(lower_wall_texture, light_level);
   for (int i = x1; i <= x2; ++i) {
     float draw_wall_y1 = wall_y1 - 1;
     float draw_wall_y2 = wall_y2;
 
-    if (b_draw_upper_wall) {
-      float draw_upper_wall_y1 = wall_y1 - 1;
-      float draw_upper_wall_y2 = portal_y1;
-
-      if (b_draw_ceil) {
-        float cy1 = vr->upper_clip[i] + 1;
-        float cy2 = MIN(draw_wall_y1 - 1, vr->lower_clip[i] - 1);
-        renderer_line(vr->renderer, i, cy1, cy2, get_color(tex_ceil_id));
-      }
-
-      float wy1 = MAX(draw_upper_wall_y1, vr->upper_clip[i] + 1);
-      float wy2 = MAX(draw_upper_wall_y2, vr->lower_clip[i] - 1);
-      renderer_line(vr->renderer, i, wy1, wy2, get_color(upper_wall_texture));
-      if (vr->upper_clip[i] < wy2) {
-        vr->upper_clip[i] = wy2;
-      }
-      portal_y1 += portal_y1_step;
-    }
+    // if (b_draw_upper_wall) {
+    //   float draw_upper_wall_y1 = wall_y1 - 1;
+    //   float draw_upper_wall_y2 = portal_y1;
+    //
+    //   if (b_draw_ceil) {
+    //     float cy1 = vr->upper_clip[i] + 1;
+    //     float cy2 = MIN(draw_wall_y1 - 1, vr->lower_clip[i] - 1);
+    //     renderer_line(vr->renderer, i, cy1, cy2, c0);
+    //   }
+    //
+    //   float wy1 = MAX(draw_upper_wall_y1, vr->upper_clip[i] + 1);
+    //   float wy2 = MAX(draw_upper_wall_y2, vr->lower_clip[i] - 1);
+    //   renderer_line(vr->renderer, i, wy1, wy2, c1);
+    //   if (vr->upper_clip[i] < wy2) {
+    //     vr->upper_clip[i] = wy2;
+    //   }
+    //   portal_y1 += portal_y1_step;
+    // }
 
     if (b_draw_ceil) {
       float cy1 = vr->upper_clip[i] + 1;
       float cy2 = MIN(draw_wall_y1 - 1, vr->lower_clip[i] - 1);
-      renderer_line(vr->renderer, i, cy1, cy2, get_color(tex_ceil_id));
+      renderer_line(vr->renderer, i, cy1, cy2, c0);
       if (vr->upper_clip[i] < cy2) {
         vr->upper_clip[i] = cy2;
       }
@@ -379,13 +461,13 @@ static void store_portal_wall_range(ViewRenderer* vr, Segment_t* segment,
       if (b_draw_floor) {
         float fy1 = MAX(draw_wall_y2 + 1, vr->upper_clip[i] + 1);
         float fy2 = vr->lower_clip[i] - 1;
-        renderer_line(vr->renderer, i, fy1, fy2, get_color(tex_floor_id));
+        renderer_line(vr->renderer, i, fy1, fy2, c2);
       }
       float draw_lower_wall_y1 = portal_y2 - 1;
       float draw_lower_wall_y2 = wall_y2;
       float wy1 = MAX(draw_lower_wall_y1, vr->upper_clip[i] + 1);
       float wy2 = MIN(draw_lower_wall_y2, vr->lower_clip[i] - 1);
-      renderer_line(vr->renderer, i, wy1, wy2, get_color(lower_wall_texture));
+      renderer_line(vr->renderer, i, wy1, wy2, c3);
       if (vr->lower_clip[i] > wy1) {
         vr->lower_clip[i] = wy1;
       }
@@ -395,7 +477,7 @@ static void store_portal_wall_range(ViewRenderer* vr, Segment_t* segment,
     if (b_draw_floor) {
       float fy1 = MAX(draw_wall_y2 + 1, vr->upper_clip[i] + 1);
       float fy2 = vr->lower_clip[i] - 1;
-      renderer_line(vr->renderer, i, fy1, fy2, get_color(tex_floor_id));
+      renderer_line(vr->renderer, i, fy1, fy2, c2);
       if (vr->lower_clip[i] > draw_wall_y2 + 1) {
         vr->lower_clip[i] = fy1;
       }
@@ -403,18 +485,24 @@ static void store_portal_wall_range(ViewRenderer* vr, Segment_t* segment,
     wall_y1 += wall_y1_step;
     wall_y2 += wall_y2_step;
   }
+#else
+  store_wall_range(vr, segment, x1, x2, rw_angle);
+#endif
 }
 
 static void store_solid_wall_range(ViewRenderer* vr, Segment_t* segment, int x1,
                                    int x2, float rw_angle) {
+#if DBG
+  Sector* front = segment->front_sector;
+
   float angle = segment->angle + 90;
   float off_angle = angle - rw_angle;
   float hp = player_distance_from_point(vr->player, *segment->start_vertex);
   float rw_dist = hp * cosf(RADIANS(off_angle));
   float rw_scale1 = scale_factor(vr, x1, angle, rw_dist);
   float rw_scale_step = 0;
-  float z1 = segment->front_sector->ceiling_height - vr->player->z;
-  float z2 = segment->front_sector->floor_height - vr->player->z;
+  float z1 = front->ceiling_height - vr->player->z;
+  float z2 = front->floor_height - vr->player->z;
 
   if (x1 < x2) {
     float scale2 = scale_factor(vr, x2, angle, rw_dist);
@@ -430,13 +518,16 @@ static void store_solid_wall_range(ViewRenderer* vr, Segment_t* segment, int x1,
   float wall_y2_step = -rw_scale_step * z2;
 
   char* wall_texture = segment->linedef->front_sidedef->middle_texture;
-  Sector* front = segment->front_sector;
   char* ceil_texture = front->ceiling_texture;
   char* floor_texture = front->floor_texture;
+  int light_level = front->light_level;
 
-  bool b_draw_wall = segment->linedef->front_sidedef->middle_texture[0] != '-';
+  bool b_draw_wall = wall_texture[0] != '-';
   bool b_draw_ceil = z1 > 0;
   bool b_draw_floor = z2 < 0;
+  uint32_t c0 = get_color(ceil_texture, light_level);
+  uint32_t c1 = get_color(wall_texture, light_level);
+  uint32_t c2 = get_color(floor_texture, light_level);
 
   for (int i = x1; i <= x2; ++i) {
     float draw_wall_y1 = wall_y1 - 1;
@@ -444,23 +535,26 @@ static void store_solid_wall_range(ViewRenderer* vr, Segment_t* segment, int x1,
     if (b_draw_ceil) {
       float cy1 = vr->upper_clip[i] + 1;
       float cy2 = MIN(draw_wall_y1 - 1, vr->lower_clip[i] - 1);
-      renderer_line(vr->renderer, i, cy1, cy2, get_color(ceil_texture));
+      renderer_line(vr->renderer, i, cy1, cy2, c0);
     }
 
     if (b_draw_wall) {
       float wy1 = MAX(draw_wall_y1, vr->upper_clip[i] + 1);
       float wy2 = MIN(draw_wall_y2, vr->lower_clip[i] - 1);
-      renderer_line(vr->renderer, i, wy1, wy2, get_color(wall_texture));
+      renderer_line(vr->renderer, i, wy1, wy2, c1);
     }
 
     if (b_draw_floor) {
       float fy1 = MAX(draw_wall_y2 + 1, vr->upper_clip[i] + 1);
       float fy2 = vr->lower_clip[i] - 1;
-      renderer_line(vr->renderer, i, fy1, fy2, get_color(floor_texture));
+      renderer_line(vr->renderer, i, fy1, fy2, c2);
     }
     wall_y1 += wall_y1_step;
     wall_y2 += wall_y2_step;
   }
+#else
+  store_wall_range(vr, segment, x1, x2, rw_angle);
+#endif
 }
 
 void vr_clip_pass_wall(ViewRenderer* vr, Segment_t* segment, int x1, int x2,
@@ -493,7 +587,6 @@ void vr_clip_pass_wall(ViewRenderer* vr, Segment_t* segment, int x1, int x2,
 
 void vr_clip_solid_wall(ViewRenderer* vr, Segment_t* segment, int x1, int x2,
                         float rw_angle) {
-#if 1
   ClipRange* start = vr->solidsegs;
   ClipRange* next;
   while (start->last < x1 - 1) {
@@ -540,50 +633,6 @@ crunch:
     *++start = *next;
   }
   vr->newend = start + 1;
-#else
-  int nums = 0;
-  for (int i = 0; i < window->width; ++i) {
-    if (vr->screen_range[i] != -1) {
-      nums++;
-    }
-  }
-  if (nums > 0) {
-    float* curr_wall = malloc(sizeof(float) * (x2 - x1 + 1));
-    for (int i = 0, j = x1; i < x2 - x1; ++i) {
-      curr_wall[i] = j++;
-    }
-    float* intersection = malloc(sizeof(float) * (x2 - x1 + 1));
-    for (int i = 0; i < x2 - x1; ++i) {
-      intersection[i] = -1;
-    }
-    for (int i = 0; i < window->width; ++i) {
-      bool found = false;
-      for (int j = 0; j < x2 - x1; ++j) {
-        if (vr->screen_range[i] == curr_wall[j]) {
-          intersection[j] = j;
-          found = true;
-        }
-        if (found) {
-          break;
-        }
-      }
-    }
-    int intersec_len = 0;
-    for (int i = 0; i < x2 - x1; ++i) {
-      if (intersection[i] != -1) {
-        intersec_len++;
-      }
-    }
-    if (intersec_len == x2 - x1) {
-      store_wall_range(vr, segment, x1, x2 - 1, rw_angle);
-    } else {
-    }
-    free(curr_wall);
-    free(intersection);
-  } else {
-    vr->bsp_traverse = false;
-  }
-#endif
 }
 
 void vr_draw_bsp_node(ViewRenderer* vr, int16_t node_id) {

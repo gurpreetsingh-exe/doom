@@ -113,12 +113,8 @@ int map_get_ssector_height(DoomMap* map, Player* player) {
   }
   subsec_id &= ~SSECTOR_IDENTIFIER;
   SubSector subsector = map->subsectors[subsec_id];
-  Segment seg = map->segments[subsector.first_seg];
-  int floor =
-      map->sectors[map->sidedefs[map->linedefs[seg.linedef].front_sidedef]
-                       .sector_num]
-          .floor_height;
-  return floor;
+  Segment_t seg = map->segments_t[subsector.first_seg];
+  return seg.front_sector->floor_height;
 }
 
 void map_destroy(DoomMap* map) {

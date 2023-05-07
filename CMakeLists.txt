@@ -35,5 +35,5 @@ add_subdirectory(extern/cimgui)
 
 target_link_libraries(doom PUBLIC glfw glew cimgui)
 
-target_compile_options(doom PRIVATE -ggdb -fsanitize=address -fno-omit-frame-pointer)
-target_link_options(doom PRIVATE -fsanitize=address)
+# target_compile_options(doom PRIVATE -ggdb -fsanitize=address -fno-omit-frame-pointer)
+# target_link_options(doom PRIVATE -fsanitize=address)

@@ -159,6 +159,11 @@ typedef struct {
   Sector* back_sector;
 } Segment_t;
 
+typedef struct {
+  char name[8];
+  uint8_t* data;
+} Texture;
+
 Wad* load_wad(const char* path);
 size_t wad_get_map_index(Wad* wad, const char* map_name);
 void wad_destroy(Wad* wad);

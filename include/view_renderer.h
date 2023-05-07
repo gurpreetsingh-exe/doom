@@ -7,6 +7,7 @@
 #include "renderer.h"
 
 #define MAXSEGS 32
+// KHASH_MAP_INIT_STR(col, uint32_t);
 
 typedef struct {
   int first;
@@ -25,6 +26,7 @@ typedef struct {
   bool bsp_traverse;
   float* upper_clip;
   float* lower_clip;
+  // kh_col_t* color;
 
   ClipRange* newend;
   ClipRange* solidsegs;
