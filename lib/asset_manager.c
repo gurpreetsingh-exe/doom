@@ -5,6 +5,7 @@
 #include <string.h>
 
 extern int hash(char* name);
+#define SCALE 2
 
 AssetManager* am_init(Wad* wad, DoomMap* map) {
   AssetManager* am = malloc(sizeof(AssetManager));
@@ -18,7 +19,7 @@ AssetManager* am_init(Wad* wad, DoomMap* map) {
   glBindTexture(GL_TEXTURE_2D, plt);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 16, 16, 0, GL_RGB, GL_UNSIGNED_BYTE,
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 16, 16, 0, GL_RGB, GL_UNSIGNED_BYTE,
                am->palette);
   glBindTexture(GL_TEXTURE_2D, 0);
   am->plt = plt;
@@ -92,22 +93,40 @@ Patch* patch_init(AssetManager* am, char* name) {
   }
 
   patch->image = malloc(ph->width * ph->height * sizeof(uint32_t));
-  int ix = 0;
-  for (size_t i = 0; i < patch->numcols; ++i) {
+  for (size_t i = 0, ix = 0; i < patch->numcols; ++i) {
     PatchColumn* pc = patch->pcols[i];
     if (pc->top_delta == 0xff) {
       ix++;
       continue;
     }
     for (size_t j = 0; j < pc->length; ++j) {
-      int idx = pc->data[j];
-      uint8_t* c = &am->palette[idx];
-      uint32_t color = (255 << 24) | (c[2] << 16) | (c[1] << 8) | c[0];
-      // uint32_t color = c[2] << 16 | c[1] << 8 | c[0];
+      int idx = pc->data[j] * 3;
+      uint8_t* c = am->palette + idx;
+      uint32_t color = 255 << 24 | c[2] << 16 | c[1] << 8 | c[0];
       int pixel = ix + (j + pc->top_delta) * ph->width;
       patch->image[pixel] = color;
     }
   }
+
+  int new_width = ph->width * SCALE;
+  int new_height = ph->height * SCALE;
+  uint32_t* temp = malloc(new_width * new_height * sizeof(uint32_t));
+  for (size_t i = 0; i < new_width; ++i) {
+    for (size_t j = 0; j < new_height; ++j) {
+      int x = floor((float)i / SCALE);
+      int y = floor((float)j / SCALE);
+      uint32_t color = patch->image[x + y * ph->width];
+      int alpha = (color >> 24);
+      uint32_t* dst = &temp[i + j * new_width];
+      *dst = color;
+    }
+  }
+
+  // WARN: freeing messes up the texture
+  // free(patch->image);
+  patch->image = temp;
+  patch->width = new_width;
+  patch->height = new_height;
 
   uint32_t tex = 0;
   glCreateTextures(GL_TEXTURE_2D, 1, &tex);

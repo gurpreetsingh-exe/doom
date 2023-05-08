@@ -1,8 +1,9 @@
 #include "renderer.h"
-#include "image.h"
-#include "utils.h"
 #include "wad.h"
 #include <stdlib.h>
+
+extern bool eq(char* a, char* b, int sz);
+extern AssetManager* am_;
 
 Renderer* renderer_init(Image* image) {
   Renderer* renderer = (Renderer*)malloc(sizeof(Renderer));
@@ -47,6 +48,28 @@ void renderer_line(Renderer* renderer, int x, int y1, int y2, uint32_t color) {
   if (y1 < y2) {
     for (int y = y1; y <= y2; ++y) {
       renderer->image->data[x + (image->height - y - 1) * image->width] = color;
+    }
+  }
+}
+
+void renderer_draw_image(Renderer* renderer, int x, int y, char* image) {
+  for (int i = 0; i < 764; ++i) {
+    Patch* p = am_->sprites[i];
+    if (eq(p->name, image, 6)) {
+      Image* img = renderer->image;
+      int xstart = x;
+      int xend = x + p->width;
+      int ystart = y;
+      int yend = y + p->height;
+      for (int i = xstart, x0 = 0; i < xend; ++i, ++x0) {
+        for (int j = ystart, y0 = 0; j < yend; ++j, ++y0) {
+          uint32_t color = p->image[x0 + (p->height - y0 - 1) * p->width];
+          if (color) {
+            img->data[i - (p->width / 2) + j * img->width] = color;
+          }
+        }
+      }
+      break;
     }
   }
 }

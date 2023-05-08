@@ -11,18 +11,17 @@ extern Window* window;
 extern Config config;
 
 static kh_col_t* color;
-static AssetManager* am_;
+AssetManager* am_;
 
 int hash(char* name) {
   int hash = name[0];
-  // if (h) for (++s ; *s; ++s) h = (h << 5) - h + (khint_t)*s;
   for (int i = 0; i < 8; ++i) {
     hash = (hash << 5) - hash + name[i];
   }
   return hash;
 }
 
-static bool eq(char* a, char* b, int sz) { return strncmp(a, b, sz) == 0; }
+bool eq(char* a, char* b, int sz) { return strncmp(a, b, sz) == 0; }
 
 ViewRenderer* vr_init(AssetManager* am, DoomMap* map, Renderer* renderer,
                       Player* player) {
@@ -68,24 +67,9 @@ void vr_init_frame(ViewRenderer* vr) {
 }
 
 void vr_draw(ViewRenderer* vr) {
-  DoomMap* map = vr->map;
-  vr_draw_bsp_node(vr, map->numnodes - 1);
-  char* key = "SHTGA0";
-  for (int i = 0; i < 764; ++i) {
-    Patch* p = vr->am->sprites[i];
-    if (eq(p->name, key, 6)) {
-      Image* i = vr->renderer->image;
-      for (int x = 0; x < p->width; ++x) {
-        for (int y = 0; y < p->height; ++y) {
-          uint32_t color = p->image[x + (p->height - y - 1) * p->width];
-          if (color != 0) {
-            i->data[x + y * i->width] = color;
-          }
-        }
-      }
-      break;
-    }
-  }
+  vr_draw_bsp_node(vr, vr->map->numnodes - 1);
+  renderer_draw_image(vr->renderer, vr->renderer->image->width / 2, 0,
+                      "SHTGA0");
 }
 
 void vr_draw_subsector(ViewRenderer* vr, int16_t node_id) {
