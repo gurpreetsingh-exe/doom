@@ -88,6 +88,8 @@ int main() {
   ImGuiIO* io = igGetIO();
 
   ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
+  int tex_id = 10;
+  int scale = 2;
   while (window_is_running(window)) {
     glfwSwapInterval(config.v_sync);
     imgui_begin_frame();
@@ -107,6 +109,53 @@ int main() {
       igCheckbox("Clip Segments", &config.clip_view);
     }
     igEnd();
+
+    igBegin("Image Viewer", NULL, window_flags);
+    ImGuiSliderFlags flags = ImGuiSliderFlags_None;
+    igSliderInt("TexId: ", &tex_id, 0, 763, "", flags);
+    igInputInt("TexInput: ", &tex_id, 1, 10, ImGuiInputFlags_None);
+    igSliderInt("Scale: ", &scale, 1, 10, "", flags);
+    tex_id = MIN(MAX(tex_id, 0), 763);
+    Patch* patch = engine->asset_manager->sprites[tex_id];
+    igText("    Name: %s\n", patch->name);
+    igText("    Width: %d\n", patch->width);
+    igText("    Height: %d\n", patch->height);
+    ImVec2* n = ImVec2_ImVec2_Nil();
+    ImVec4* n2 = ImVec4_ImVec4_Nil();
+    igImage((void*)(intptr_t)patch->tex,
+            (ImVec2){
+                .x = patch->width * scale,
+                .y = patch->height * scale,
+            },
+            (ImVec2){
+                .x = 0,
+                .y = 0,
+            },
+            (ImVec2){
+                .x = 1,
+                .y = 1,
+            },
+            (ImVec4){
+                .x = 1,
+                .y = 1,
+                .z = 1,
+                .w = 1,
+            },
+            (ImVec4){
+                .x = 0,
+                .y = 0,
+                .z = 0,
+                .w = 0,
+            });
+    igEnd();
+
+    igBegin("Color Palette", NULL, window_flags);
+    igImage((void*)(intptr_t)engine->asset_manager->plt,
+            (ImVec2){.x = 128, .y = 128}, (ImVec2){.x = 0, .y = 0},
+            (ImVec2){.x = 1, .y = 1}, (ImVec4){.x = 1, .y = 1, .z = 1, .w = 1},
+            (ImVec4){.x = 0, .y = 0, .z = 0, .w = 0});
+    igEnd();
+
     renderer_clear(engine->renderer);
     engine_tick(engine, draw, update);
     imgui_end_frame();

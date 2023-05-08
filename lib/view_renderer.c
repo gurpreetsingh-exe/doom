@@ -11,19 +11,24 @@ extern Window* window;
 extern Config config;
 
 static kh_col_t* color;
+static AssetManager* am_;
 
 int hash(char* name) {
-  int hash = 0;
+  int hash = name[0];
+  // if (h) for (++s ; *s; ++s) h = (h << 5) - h + (khint_t)*s;
   for (int i = 0; i < 8; ++i) {
-    hash += (hash << 5) + name[i];
+    hash = (hash << 5) - hash + name[i];
   }
   return hash;
 }
 
 static bool eq(char* a, char* b, int sz) { return strncmp(a, b, sz) == 0; }
 
-ViewRenderer* vr_init(DoomMap* map, Renderer* renderer, Player* player) {
+ViewRenderer* vr_init(AssetManager* am, DoomMap* map, Renderer* renderer,
+                      Player* player) {
   ViewRenderer* vr = malloc(sizeof(ViewRenderer));
+  am_ = am;
+  vr->am = am;
   vr->map = map;
   vr->renderer = renderer;
   vr->player = player;
@@ -65,6 +70,22 @@ void vr_init_frame(ViewRenderer* vr) {
 void vr_draw(ViewRenderer* vr) {
   DoomMap* map = vr->map;
   vr_draw_bsp_node(vr, map->numnodes - 1);
+  char* key = "SHTGA0";
+  for (int i = 0; i < 764; ++i) {
+    Patch* p = vr->am->sprites[i];
+    if (eq(p->name, key, 6)) {
+      Image* i = vr->renderer->image;
+      for (int x = 0; x < p->width; ++x) {
+        for (int y = 0; y < p->height; ++y) {
+          uint32_t color = p->image[x + (p->height - y - 1) * p->width];
+          if (color != 0) {
+            i->data[x + y * i->width] = color;
+          }
+        }
+      }
+      break;
+    }
+  }
 }
 
 void vr_draw_subsector(ViewRenderer* vr, int16_t node_id) {
@@ -428,7 +449,6 @@ static void store_portal_wall_range(ViewRenderer* vr, Segment_t* segment,
   for (int i = x1; i <= x2; ++i) {
     float draw_wall_y1 = wall_y1 - 1;
     float draw_wall_y2 = wall_y2;
-
     // if (b_draw_upper_wall) {
     //   float draw_upper_wall_y1 = wall_y1 - 1;
     //   float draw_upper_wall_y2 = portal_y1;

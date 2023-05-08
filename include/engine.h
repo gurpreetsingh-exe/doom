@@ -1,6 +1,7 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#include "asset_manager.h"
 #include "map.h"
 #include "map_renderer.h"
 #include "player.h"
@@ -15,6 +16,7 @@ typedef struct {
   Wad* wad;
   MapRenderer* map_renderer;
   ViewRenderer* vr;
+  AssetManager* asset_manager;
   uint32_t width, height;
 } Engine;
 

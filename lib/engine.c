@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "asset_manager.h"
 #include "map_renderer.h"
 
 extern Window* window;
@@ -9,12 +10,14 @@ Engine* engine_init(const char* wad_path, uint32_t width, uint32_t height) {
   engine->height = height;
   engine->wad = load_wad(wad_path);
   engine->map = load_map(engine->wad, "E1M1");
+  engine->asset_manager = am_init(engine->wad, engine->map);
   engine->player = player_init(engine->map->things[0]);
   Image* image = image_init(width, height);
   engine->renderer = renderer_init(image);
   engine->map_renderer =
       map_renderer_init(engine->map, engine->renderer, engine->player);
-  engine->vr = vr_init(engine->map, engine->renderer, engine->player);
+  engine->vr = vr_init(engine->asset_manager, engine->map, engine->renderer,
+                       engine->player);
 
   return engine;
 }
@@ -32,6 +35,7 @@ void engine_destroy(Engine* engine) {
   player_destroy(engine->player);
   map_destroy(engine->map);
   wad_destroy(engine->wad);
+  am_destroy(engine->asset_manager);
   map_renderer_destroy(engine->map_renderer);
   renderer_destroy(engine->renderer);
   free(engine);

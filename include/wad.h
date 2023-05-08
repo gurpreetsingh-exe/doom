@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define PALETTE 0
 #define THINGS 1
 #define LINEDEFS 2
 #define SIDEDEFS 3
@@ -18,6 +19,7 @@
 
 #define SSECTOR_IDENTIFIER 0x8000
 
+#define WAD_PALETTE(index) wad->lumps[index + PALETTE]
 #define WAD_THING(index) wad->lumps[index + THINGS]
 #define WAD_LINEDEF(index) wad->lumps[index + LINEDEFS]
 #define WAD_SIDEDEF(index) wad->lumps[index + SIDEDEFS]
@@ -163,6 +165,22 @@ typedef struct {
   char name[8];
   uint8_t* data;
 } Texture;
+
+typedef struct {
+  uint16_t width;
+  uint16_t height;
+  int16_t left_offset;
+  int16_t top_offset;
+  uint32_t* column_offset;
+} PatchHeader;
+
+typedef struct {
+  uint8_t top_delta;
+  uint8_t length;
+  uint8_t unused;
+  uint8_t* data;
+  uint8_t unused2;
+} PatchColumn;
 
 Wad* load_wad(const char* path);
 size_t wad_get_map_index(Wad* wad, const char* map_name);

@@ -5,12 +5,13 @@ project(doom VERSION 1.0)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 17)
 set(OpenGL_GL_PREFERENCE GLVND)
-# set(CMAKE_C_FLAGS "-Wall -Werror")
+set(CMAKE_C_FLAGS "-Wall -Werror -Wno-unused-variable -Wno-unused-function -Wno-unused-label -Wno-unused-but-set-variable")
 
 set(IMGUI_DIR extern/cimgui/imgui)
 
 set(SOURCES
     lib/main.c
+    lib/asset_manager.c
     lib/window.c
     lib/image.c
     lib/map.c

@@ -1,6 +1,7 @@
 #ifndef VIEW_RENDERER_H
 #define VIEW_RENDERER_H
 
+#include "asset_manager.h"
 #include "khash.h"
 #include "map.h"
 #include "player.h"
@@ -15,6 +16,7 @@ typedef struct {
 } ClipRange;
 
 typedef struct {
+  AssetManager* am;
   DoomMap* map;
   Renderer* renderer;
   Player* player;
@@ -32,7 +34,8 @@ typedef struct {
   ClipRange* solidsegs;
 } ViewRenderer;
 
-ViewRenderer* vr_init(DoomMap* map, Renderer* renderer, Player* player);
+ViewRenderer* vr_init(AssetManager* am, DoomMap* map, Renderer* renderer,
+                      Player* player);
 void vr_init_frame(ViewRenderer* vr);
 void vr_draw(ViewRenderer* vr);
 void vr_draw_bsp_node(ViewRenderer* vr, int16_t node_id);
