@@ -656,6 +656,9 @@ void vr_draw_bsp_node(ViewRenderer* vr, int16_t node_id) {
 }
 
 void vr_destroy(ViewRenderer* vr) {
+  free(vr->screen_range);
+  free(vr->upper_clip);
+  free(vr->lower_clip);
   free(vr->screen_to_angle);
   free(vr->solidsegs);
   free(vr);

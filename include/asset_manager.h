@@ -30,5 +30,6 @@ AssetManager* am_init(Wad* wad, DoomMap* map);
 void am_destroy(AssetManager* am);
 
 Patch* patch_init(AssetManager* am, char* name, bool is_sprite);
+void patch_destroy(Patch* patch);
 
 #endif // !ASSET_MANAGER_H

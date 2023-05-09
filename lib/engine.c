@@ -37,6 +37,7 @@ void engine_destroy(Engine* engine) {
   wad_destroy(engine->wad);
   am_destroy(engine->asset_manager);
   map_renderer_destroy(engine->map_renderer);
+  vr_destroy(engine->vr);
   renderer_destroy(engine->renderer);
   free(engine);
 }

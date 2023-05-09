@@ -61,13 +61,15 @@ AssetManager* am_init(Wad* wad, DoomMap* map) {
 
 void am_destroy(AssetManager* am) {
   for (size_t i = 0; i < am->numsprites; ++i) {
-    free(am->sprites[i]);
+    patch_destroy(am->sprites[i]);
   }
   for (size_t i = 0; i < am->numtexture_patches; ++i) {
-    free(am->texture_patches[i]);
+    patch_destroy(am->texture_patches[i]);
   }
   free(am->sprites);
   free(am->texture_patches);
+  free(am->palette);
+  glDeleteTextures(1, &am->plt);
   free(am);
 }
 
@@ -134,6 +136,7 @@ Patch* patch_init(AssetManager* am, char* name, bool is_sprite) {
       int pixel = ix + (j + pc->top_delta) * ph->width;
       patch->image[pixel] = color;
     }
+    free(pc->data);
   }
 
   if (is_sprite) {
@@ -151,11 +154,13 @@ Patch* patch_init(AssetManager* am, char* name, bool is_sprite) {
       }
     }
 
+    // void* temp2 = patch->image;
     // WARN: freeing messes up the texture
     // free(patch->image);
     patch->image = temp;
     patch->width = new_width;
     patch->height = new_height;
+    // free(temp2);
   }
 
   uint32_t tex = 0;
@@ -169,4 +174,17 @@ Patch* patch_init(AssetManager* am, char* name, bool is_sprite) {
   patch->tex = tex;
 
   return patch;
+}
+
+void patch_destroy(Patch* patch) {
+  free(patch->pheader->column_offset);
+  free(patch->pheader);
+  for (size_t i = 0; i < patch->numcols; ++i) {
+    // free(patch->pcols[i]->data);
+    free(patch->pcols[i]);
+  }
+  free(patch->pcols);
+  free(patch->image);
+  glDeleteTextures(1, &patch->tex);
+  free(patch);
 }

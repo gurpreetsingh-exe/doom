@@ -120,33 +120,11 @@ int main() {
     igText("    Name: %s\n", patch->name);
     igText("    Width: %d\n", patch->width);
     igText("    Height: %d\n", patch->height);
-    ImVec2* n = ImVec2_ImVec2_Nil();
-    ImVec4* n2 = ImVec4_ImVec4_Nil();
     igImage((void*)(intptr_t)patch->tex,
-            (ImVec2){
-                .x = patch->width * scale,
-                .y = patch->height * scale,
-            },
-            (ImVec2){
-                .x = 0,
-                .y = 0,
-            },
-            (ImVec2){
-                .x = 1,
-                .y = 1,
-            },
-            (ImVec4){
-                .x = 1,
-                .y = 1,
-                .z = 1,
-                .w = 1,
-            },
-            (ImVec4){
-                .x = 0,
-                .y = 0,
-                .z = 0,
-                .w = 0,
-            });
+            (ImVec2){.x = patch->width * scale, .y = patch->height * scale},
+            (ImVec2){.x = 0, .y = 0}, (ImVec2){.x = 1, .y = 1},
+            (ImVec4){.x = 1, .y = 1, .z = 1, .w = 1},
+            (ImVec4){.x = 0, .y = 0, .z = 0, .w = 0});
     igEnd();
 
     igBegin("Color Palette", NULL, window_flags);

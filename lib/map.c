@@ -126,5 +126,8 @@ void map_destroy(DoomMap* map) {
   free(map->subsectors);
   free(map->nodes);
   free(map->sectors);
+  free(map->segments_t);
+  free(map->sidedefs_t);
+  free(map->linedefs_t);
   free(map);
 }
