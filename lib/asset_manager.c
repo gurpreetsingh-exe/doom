@@ -4,6 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void strupr(char* s) {
+  for (int i = 0; i < 8; ++i) {
+    if (s[i] >= 97 && s[i] <= 122) {
+      s[i] = s[i] - 32;
+    }
+  }
+}
+
 extern int hash(char* name);
 #define SCALE 2
 
@@ -24,26 +32,46 @@ AssetManager* am_init(Wad* wad, DoomMap* map) {
   glBindTexture(GL_TEXTURE_2D, 0);
   am->plt = plt;
 
-  // khash_t(s)* sprites = kh_init(s);
-
   int id1 = wad_get_map_index(wad, "S_START") + 1;
   int id2 = wad_get_map_index(wad, "S_END");
-  am->sprites = malloc(sizeof(Patch*) * (id2 - id1));
-  printf("%d\n", id2 - id1);
+  am->numsprites = (id2 - id1);
+  am->sprites = malloc(sizeof(Patch*) * am->numsprites);
   for (int i = id1; i < id2; ++i) {
     lump = wad->lumps[i];
-    am->sprites[i - id1] = patch_init(am, lump.name);
-    // k = kh_put(s, sprites, key, &ret);
-    // p = patch_init(am, key);
-    // kh_value(sprites, k) = p;
+    am->sprites[i - id1] = patch_init(am, lump.name, true);
   }
 
+  lump = wad->lumps[wad_get_map_index(wad, "PNAMES")];
+  char* pnames = malloc(lump.size);
+  memcpy(pnames, wad->src + lump.filepos + 4, lump.size);
+
+  am->texture_patches = malloc(lump.size - 4);
+  am->numtexture_patches = (lump.size - 4) / 8;
+  for (size_t i = 0; i < lump.size - 4; i += 8) {
+    char pname[9] = {0};
+    memcpy(pname, pnames + i, 8);
+    pname[8] = 0;
+    strupr(pname);
+    am->texture_patches[i / 8] = patch_init(am, pname, false);
+  }
+
+  free(pnames);
   return am;
 }
 
-void am_destroy(AssetManager* am) { free(am); }
+void am_destroy(AssetManager* am) {
+  for (size_t i = 0; i < am->numsprites; ++i) {
+    free(am->sprites[i]);
+  }
+  for (size_t i = 0; i < am->numtexture_patches; ++i) {
+    free(am->texture_patches[i]);
+  }
+  free(am->sprites);
+  free(am->texture_patches);
+  free(am);
+}
 
-Patch* patch_init(AssetManager* am, char* name) {
+Patch* patch_init(AssetManager* am, char* name, bool is_sprite) {
   Patch* patch = malloc(sizeof(Patch));
   memcpy(patch->name, name, 8);
   patch->name[8] = 0;
@@ -108,25 +136,27 @@ Patch* patch_init(AssetManager* am, char* name) {
     }
   }
 
-  int new_width = ph->width * SCALE;
-  int new_height = ph->height * SCALE;
-  uint32_t* temp = malloc(new_width * new_height * sizeof(uint32_t));
-  for (size_t i = 0; i < new_width; ++i) {
-    for (size_t j = 0; j < new_height; ++j) {
-      int x = floor((float)i / SCALE);
-      int y = floor((float)j / SCALE);
-      uint32_t color = patch->image[x + y * ph->width];
-      int alpha = (color >> 24);
-      uint32_t* dst = &temp[i + j * new_width];
-      *dst = color;
+  if (is_sprite) {
+    int new_width = ph->width * SCALE;
+    int new_height = ph->height * SCALE;
+    uint32_t* temp = malloc(new_width * new_height * sizeof(uint32_t));
+    for (size_t i = 0; i < new_width; ++i) {
+      for (size_t j = 0; j < new_height; ++j) {
+        int x = floor((float)i / SCALE);
+        int y = floor((float)j / SCALE);
+        uint32_t color = patch->image[x + y * ph->width];
+        int alpha = (color >> 24);
+        uint32_t* dst = &temp[i + j * new_width];
+        *dst = color;
+      }
     }
-  }
 
-  // WARN: freeing messes up the texture
-  // free(patch->image);
-  patch->image = temp;
-  patch->width = new_width;
-  patch->height = new_height;
+    // WARN: freeing messes up the texture
+    // free(patch->image);
+    patch->image = temp;
+    patch->width = new_width;
+    patch->height = new_height;
+  }
 
   uint32_t tex = 0;
   glCreateTextures(GL_TEXTURE_2D, 1, &tex);

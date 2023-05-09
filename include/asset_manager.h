@@ -19,12 +19,16 @@ typedef struct {
   uint8_t* palette;
   Wad* wad;
   Patch** sprites;
+  size_t numsprites;
+
+  Patch** texture_patches;
+  size_t numtexture_patches;
   uint32_t plt;
 } AssetManager;
 
 AssetManager* am_init(Wad* wad, DoomMap* map);
 void am_destroy(AssetManager* am);
 
-Patch* patch_init(AssetManager* am, char* name);
+Patch* patch_init(AssetManager* am, char* name, bool is_sprite);
 
 #endif // !ASSET_MANAGER_H
