@@ -89,6 +89,7 @@ int main() {
 
   ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
   int tex_id = 10;
+  int tex_id2 = 0;
   int scale = 2;
   while (window_is_running(window)) {
     glfwSwapInterval(config.v_sync);
@@ -122,6 +123,29 @@ int main() {
     igText("    Height: %d\n", patch->height);
     igImage((void*)(intptr_t)patch->tex,
             (ImVec2){.x = patch->width * scale, .y = patch->height * scale},
+            (ImVec2){.x = 0, .y = 0}, (ImVec2){.x = 1, .y = 1},
+            (ImVec4){.x = 1, .y = 1, .z = 1, .w = 1},
+            (ImVec4){.x = 0, .y = 0, .z = 0, .w = 0});
+    igEnd();
+
+    igBegin("Color Palette", NULL, window_flags);
+    igImage((void*)(intptr_t)engine->asset_manager->plt,
+            (ImVec2){.x = 128, .y = 128}, (ImVec2){.x = 0, .y = 0},
+            (ImVec2){.x = 1, .y = 1}, (ImVec4){.x = 1, .y = 1, .z = 1, .w = 1},
+            (ImVec4){.x = 0, .y = 0, .z = 0, .w = 0});
+    igEnd();
+
+    igBegin("Texture Viewer", NULL, window_flags);
+    int sz = engine->asset_manager->numtexture_maps;
+    igSliderInt("TexId: ", &tex_id2, 0, sz - 1, "", flags);
+    igInputInt("TexInput: ", &tex_id2, 1, 10, ImGuiInputFlags_None);
+    tex_id2 = MIN(MAX(tex_id2, 0), sz);
+    Texture* tex = &engine->asset_manager->texture[tex_id2];
+    igText("    Name: %s\n", tex->name);
+    igText("    Width: %d\n", tex->width);
+    igText("    Height: %d\n", tex->height);
+    igImage((void*)(intptr_t)tex->tex,
+            (ImVec2){.x = tex->width, .y = tex->height},
             (ImVec2){.x = 0, .y = 0}, (ImVec2){.x = 1, .y = 1},
             (ImVec4){.x = 1, .y = 1, .z = 1, .w = 1},
             (ImVec4){.x = 0, .y = 0, .z = 0, .w = 0});

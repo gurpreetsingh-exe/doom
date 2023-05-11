@@ -162,11 +162,6 @@ typedef struct {
 } Segment_t;
 
 typedef struct {
-  char name[8];
-  uint8_t* data;
-} Texture;
-
-typedef struct {
   uint16_t width;
   uint16_t height;
   int16_t left_offset;
@@ -181,6 +176,30 @@ typedef struct {
   uint8_t* data;
   uint8_t unused2;
 } PatchColumn;
+
+typedef struct {
+  int16_t originx;
+  int16_t originy;
+  int16_t patch;
+  int16_t stepdir;
+  int16_t colormap;
+} PatchMap;
+
+typedef struct {
+  char name[8];
+  int32_t masked;
+  int16_t width;
+  int16_t height;
+  int32_t column_directory;
+  int16_t patch_count;
+  PatchMap* patches;
+} TextureMap;
+
+typedef struct {
+  int32_t numtextures;
+  int32_t offset;
+  int32_t* mtexture;
+} TextureHeader;
 
 Wad* load_wad(const char* path);
 size_t wad_get_map_index(Wad* wad, const char* map_name);

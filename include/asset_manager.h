@@ -16,6 +16,13 @@ typedef struct {
 } Patch;
 
 typedef struct {
+  char name[9];
+  uint32_t width, height;
+  uint32_t* image;
+  uint32_t tex;
+} Texture;
+
+typedef struct {
   uint8_t* palette;
   Wad* wad;
   Patch** sprites;
@@ -23,6 +30,12 @@ typedef struct {
 
   Patch** texture_patches;
   size_t numtexture_patches;
+
+  TextureMap** texture_maps;
+  size_t numtexture_maps;
+
+  Texture* texture;
+
   uint32_t plt;
 } AssetManager;
 

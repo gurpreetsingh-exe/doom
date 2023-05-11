@@ -56,6 +56,71 @@ AssetManager* am_init(Wad* wad, DoomMap* map) {
   }
 
   free(pnames);
+
+  lump = wad->lumps[wad_get_map_index(wad, "TEXTURE1")];
+  TextureHeader* texture_header = malloc(sizeof(TextureHeader));
+  memcpy(texture_header, wad->src + lump.filepos, 8);
+  texture_header->mtexture =
+      malloc(sizeof(int32_t) * texture_header->numtextures);
+  memcpy(texture_header->mtexture, wad->src + lump.filepos + 4,
+         texture_header->numtextures * 4);
+
+  am->numtexture_maps = texture_header->numtextures;
+  am->texture_maps = malloc(sizeof(TextureMap*) * texture_header->numtextures);
+  am->texture = malloc(sizeof(Texture) * texture_header->numtextures);
+  for (size_t i = 0; i < texture_header->numtextures; ++i) {
+    TextureMap* tex_map = malloc(sizeof(TextureMap));
+    int off = lump.filepos + texture_header->mtexture[i];
+    memcpy(tex_map, wad->src + off, 22);
+    tex_map->patches = malloc(sizeof(PatchMap) * tex_map->patch_count);
+    for (size_t j = 0; j < tex_map->patch_count; ++j) {
+      PatchMap* patch_map = &tex_map->patches[j];
+      memcpy(patch_map, wad->src + off + 22 + j * 10, sizeof(PatchMap));
+    }
+
+    am->texture_maps[i] = tex_map;
+
+    Texture* tex = &am->texture[i];
+    memcpy(tex->name, tex_map->name, 8);
+    tex->name[8] = 0;
+    tex->width = tex_map->width;
+    tex->height = tex_map->height;
+    tex->image = malloc(tex_map->width * tex_map->height * sizeof(uint32_t));
+    for (size_t j = 0; j < tex_map->patch_count; ++j) {
+      PatchMap* patch_map = &tex_map->patches[j];
+      Patch* patch = am->texture_patches[patch_map->patch];
+      for (int x = 0; x < patch->width; ++x) {
+        for (int y = 0; y < patch->height; ++y) {
+          int x_off = x + patch_map->originx;
+          int y_off = y + patch_map->originy;
+          if (x_off < 0 || y_off < 0) {
+            continue;
+          }
+          int index = x + y * patch->width;
+          uint32_t color = patch->image[index];
+          index = x_off + y_off * tex_map->width;
+          if (index >= tex_map->width * tex_map->height) {
+            continue;
+          }
+          tex->image[index] = color;
+        }
+      }
+    }
+    free(tex_map->patches);
+    free(tex_map);
+
+    glCreateTextures(GL_TEXTURE_2D, 1, &tex->tex);
+    glBindTexture(GL_TEXTURE_2D, tex->tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex->width, tex->height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, tex->image);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  free(texture_header->mtexture);
+  free(texture_header);
+
   return am;
 }
 
@@ -68,6 +133,11 @@ void am_destroy(AssetManager* am) {
   }
   free(am->sprites);
   free(am->texture_patches);
+  for (size_t i = 0; i < am->numtexture_maps; ++i) {
+    free(am->texture[i].image);
+  }
+  free(am->texture_maps);
+  free(am->texture);
   free(am->palette);
   glDeleteTextures(1, &am->plt);
   free(am);
@@ -180,7 +250,6 @@ void patch_destroy(Patch* patch) {
   free(patch->pheader->column_offset);
   free(patch->pheader);
   for (size_t i = 0; i < patch->numcols; ++i) {
-    // free(patch->pcols[i]->data);
     free(patch->pcols[i]);
   }
   free(patch->pcols);
