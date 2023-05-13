@@ -67,7 +67,12 @@ AssetManager* am_init(Wad* wad, DoomMap* map) {
 
   am->numtexture_maps = texture_header->numtextures;
   am->texture_maps = malloc(sizeof(TextureMap*) * texture_header->numtextures);
-  am->texture = malloc(sizeof(Texture) * texture_header->numtextures);
+
+  id1 = wad_get_map_index(wad, "F_START") + 1;
+  id2 = wad_get_map_index(wad, "F_END");
+  int numflats = id2 - id1;
+  am->texture =
+      malloc(sizeof(Texture) * (texture_header->numtextures + numflats));
   for (size_t i = 0; i < texture_header->numtextures; ++i) {
     TextureMap* tex_map = malloc(sizeof(TextureMap));
     int off = lump.filepos + texture_header->mtexture[i];
@@ -117,6 +122,32 @@ AssetManager* am_init(Wad* wad, DoomMap* map) {
                  GL_RGBA, GL_UNSIGNED_BYTE, tex->image);
     glBindTexture(GL_TEXTURE_2D, 0);
   }
+
+  for (int i = 0, j = texture_header->numtextures; i < numflats; ++i, ++j) {
+    Texture* tex = &am->texture[j];
+    lump = wad->lumps[i + id1];
+    tex->image = malloc(sizeof(uint32_t) * 64 * 64);
+    tex->width = 64;
+    tex->height = 64;
+    memcpy(tex->name, lump.name, 8);
+    for (int k = 0; k < lump.size; ++k) {
+      int col = *(am->wad->src + lump.filepos + k);
+      int idx = col * 3;
+      uint8_t* c = am->palette + idx;
+      uint32_t color = 255 << 24 | c[2] << 16 | c[1] << 8 | c[0];
+      tex->image[k] = color;
+    }
+
+    glCreateTextures(GL_TEXTURE_2D, 1, &tex->tex);
+    glBindTexture(GL_TEXTURE_2D, tex->tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex->width, tex->height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, tex->image);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  am->numtexture_maps = texture_header->numtextures + numflats;
 
   free(texture_header->mtexture);
   free(texture_header);
