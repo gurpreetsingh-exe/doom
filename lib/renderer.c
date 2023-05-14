@@ -1,9 +1,11 @@
 #include "renderer.h"
+#include "config.h"
 #include "wad.h"
 #include <stdlib.h>
 
 extern bool eq(char* a, char* b, int sz);
 extern AssetManager* am_;
+extern Texture* find_texture(char* name);
 
 Renderer* renderer_init(Image* image) {
   Renderer* renderer = (Renderer*)malloc(sizeof(Renderer));
@@ -71,6 +73,67 @@ void renderer_draw_image(Renderer* renderer, int x, int y, char* image) {
       }
       break;
     }
+  }
+}
+
+void renderer_draw_flat(Renderer* renderer, Player* player, char* tex_id,
+                        int light_level, int x, int y1, int y2, int world_z) {
+  if (y1 > y2) {
+    return;
+  }
+  Texture* tex = find_texture(tex_id);
+  if (!tex) {
+    return;
+  }
+
+  float player_dir_x = cosf(RADIANS(player->angle));
+  float player_dir_y = sinf(RADIANS(player->angle));
+
+  for (int y = y1; y <= y2; ++y) {
+    int z = 0;
+    if (y != 200) {
+      z = 320 * world_z / (200 - y);
+    }
+
+    float px = player_dir_x * z + player->pos.x;
+    float py = player_dir_y * z + player->pos.y;
+
+    float left_x = -player_dir_y * z + px;
+    float left_y = player_dir_x * z + py;
+    float right_x = player_dir_y * z + px;
+    float right_y = -player_dir_x * z + py;
+
+    float dx = (right_x - left_x) / WIDTH;
+    float dy = (right_y - left_y) / WIDTH;
+
+    int tx = (int)(left_x + dx * x) & 63;
+    int ty = (int)(left_y + dy * x) & 63;
+
+    uint32_t col = tex->image[tx + ty * tex->width];
+    Image* im = renderer->image;
+    im->data[x + (im->height - y - 1) * im->width] = col;
+    // PIXEL(renderer->image, x, y) = col;
+  }
+}
+
+void renderer_draw_wall_col(Renderer* renderer, Texture* tex, int tex_col,
+                            int x, int y1, int y2, float tex_alt,
+                            float inv_scale, int light_level) {
+  if (y1 > y2) {
+    return;
+  }
+  int w = tex->width;
+  int h = tex->height;
+  tex_col %= w;
+  float tex_y = tex_alt + ((float)y1 - 200) * inv_scale;
+
+  for (int y = y1; y <= y2; ++y) {
+    int i = tex_col + ((int)tex_y % h) * tex->width;
+    int col = tex->image[i];
+    Image* im = renderer->image;
+    im->data[x + (im->height - y - 1) * im->width] = col;
+    // PIXEL(renderer->image, x, y) = col;
+    tex_y += inv_scale;
   }
 }
 

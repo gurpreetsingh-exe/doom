@@ -15,6 +15,11 @@ Renderer* renderer_init(Image* image);
 void renderer_draw_line(Renderer* renderer, Vec2 v0, Vec2 v1, uint32_t color);
 void renderer_line(Renderer* renderer, int x, int y1, int y2, uint32_t color);
 void renderer_draw_image(Renderer* renderer, int x, int y, char* image);
+void renderer_draw_flat(Renderer* renderer, Player* player, char* tex_id,
+                        int light_level, int x, int y1, int y2, int world_z);
+void renderer_draw_wall_col(Renderer* renderer, Texture* tex, int tex_col,
+                            int x, int y1, int y2, float tex_alt,
+                            float inv_scale, int light_level);
 void renderer_draw_rect(Renderer* renderer, Vec2 p0, Vec2 p1, uint32_t color);
 void renderer_destroy(Renderer* renderer);
 
